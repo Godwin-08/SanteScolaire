@@ -1,0 +1,4 @@
+/* Styles spécifiques à la page d'accueil */
+.student-card {
+    transition: all 0.3s ease; /* Animation fluide au survol */
+}

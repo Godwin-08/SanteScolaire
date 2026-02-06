@@ -1,0 +1,5 @@
+/* Limite la hauteur des graphiques pour éviter qu'ils ne prennent tout l'écran */
+/* Important pour Chart.js afin de maintenir le ratio d'aspect dans les cartes */
+canvas {
+    max-height: 350px;
+}

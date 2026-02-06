@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 animate__animated animate__fadeIn">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <h2 class="fw-bold text-dark">Administration du Personnel</h2>
+        <div>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger me-2 shadow-sm">
+                <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+            </a>
+            <button class="btn btn-primary btn-pro shadow" data-bs-toggle="modal" data-bs-target="#modalAddStaff">
+                <i class="fas fa-user-plus me-2"></i>Ajouter Personnel
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Liste Médecins -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 fw-bold py-3">Liste des Médecins</div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for m in medecins %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="d-block fw-bold">Dr. {{ m.nom_medecin }}</span>
+                                <small class="text-muted">{{ m.specialite }} {% if m.email %} | <i class="fas fa-envelope ms-1"></i> {{ m.email }}{% endif %}</small>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="openEditModal('medecin', '{{ m.id_medecin }}', '{{ m.nom_medecin }}', '{{ m.specialite }}', '{{ m.email or '' }}')"><i class="fas fa-edit"></i></button>
+                                <span class="badge bg-light text-dark me-2">ID: {{ m.id_medecin }}</span>
+                                <form action="{{ url_for('admin.supprimer_personnel', type_perso='medecin', id_perso=m.id_medecin) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce médecin ? Cette action est irréversible.');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-trash-alt"></i></button>
+                                </form>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste Infirmiers -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 fw-bold py-3">Liste des Infirmiers</div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for i in infirmiers %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ i.nom_infirmier }}</span>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="openEditModal('infirmier', '{{ i.id_infirmier }}', '{{ i.nom_infirmier }}', '', '')"><i class="fas fa-edit"></i></button>
+                                <span class="badge bg-light text-dark me-2">ID: {{ i.id_infirmier }}</span>
+                                <form action="{{ url_for('admin.supprimer_personnel', type_perso='infirmier', id_perso=i.id_infirmier) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet infirmier ? Cette action est irréversible.');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-trash-alt"></i></button>
+                                </form>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajout -->
+<div class="modal fade" id="modalAddStaff" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Nouveau Membre</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.ajouter_personnel') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">TYPE</label>
+                        <select name="type" class="form-select" id="addType" onchange="toggleAddFields(this.value)">
+                            <option value="medecin">Médecin</option>
+                            <option value="infirmier">Infirmier</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">NOM</label>
+                        <input type="text" name="nom" class="form-control" placeholder="Nom de famille" required>
+                    </div>
+                    <div id="medecinFields">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">SPÉCIALITÉ</label>
+                            <input type="text" name="specialite" class="form-control" placeholder="Ex: Pédiatre, Généraliste...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">EMAIL</label>
+                            <input type="email" name="email" class="form-control" placeholder="email@exemple.com">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0"><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modification -->
+<div class="modal fade" id="modalEditStaff" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Modifier Personnel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.modifier_personnel') }}" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="editId">
+                    <input type="hidden" name="type" id="editType">
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">NOM</label>
+                        <input type="text" name="nom" id="editNom" class="form-control" required>
+                    </div>
+                    <div id="editMedecinFields">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">SPÉCIALITÉ</label>
+                            <input type="text" name="specialite" id="editSpecialite" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">EMAIL</label>
+                            <input type="email" name="email" id="editEmail" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+function toggleAddFields(val) {
+    const fields = document.getElementById('medecinFields');
+    val === 'medecin' ? fields.classList.remove('d-none') : fields.classList.add('d-none');
+}
+
+function openEditModal(type, id, nom, specialite, email) {
+    document.getElementById('editId').value = id;
+    document.getElementById('editType').value = type;
+    document.getElementById('editNom').value = nom;
+    
+    const fields = document.getElementById('editMedecinFields');
+    const specInput = document.getElementById('editSpecialite');
+    const emailInput = document.getElementById('editEmail');
+    
+    if (type === 'medecin') {
+        fields.classList.remove('d-none');
+        specInput.value = specialite;
+        emailInput.value = email;
+    } else {
+        fields.classList.add('d-none');
+        specInput.value = '';
+        emailInput.value = '';
+    }
+    
+    new bootstrap.Modal(document.getElementById('modalEditStaff')).show();
+}
+</script>
+{% endblock %}

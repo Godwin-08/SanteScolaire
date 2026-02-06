@@ -1,0 +1,4 @@
+/* Animation pour l'ajout/suppression de lignes */
+.prescription-row {
+    transition: all 0.2s ease-in-out;
+}

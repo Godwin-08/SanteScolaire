@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- En-tête avec barre de recherche -->
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold text-primary mb-3">Sante<span class="text-dark">Scolaire</span></h1>
+        <div class="col-md-8 mx-auto">
+            
+            <!-- Filtres (Filière & Historique) -->
+            <form action="{{ url_for('eleves.index') }}" method="GET" class="mb-4 animate__animated animate__fadeInDown">
+                <div class="d-flex justify-content-center gap-3 flex-wrap align-items-center">
+                    <select name="classe" class="form-select shadow-sm rounded-pill w-auto border-0 bg-white text-dark fw-bold py-2 px-4" onchange="this.form.submit()" style="min-width: 200px; cursor: pointer;">
+                        <option value="">Toutes les filières</option>
+                        {% for c in classes %}
+                        <option value="{{ c }}" {% if current_classe == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <div class="d-flex align-items-center bg-white rounded-pill px-4 py-2 shadow-sm border-0">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" name="avec_rdv" value="1" id="checkRdv" {% if current_rdv %}checked{% endif %} onchange="this.form.submit()">
+                            <label class="form-check-label small fw-bold text-muted ms-2" for="checkRdv" style="white-space: nowrap;">Avec RDV / Historique</label>
+                        </div>
+                    </div>
+                    
+                    {% if current_classe is not none or current_rdv %}
+                    <a href="{{ url_for('eleves.index') }}" class="btn btn-outline-danger rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" title="Réinitialiser"><i class="fas fa-times"></i></a>
+                    {% endif %}
+                </div>
+            </form>
+
+            <div class="input-group shadow-lg rounded-pill overflow-hidden">
+                <span class="input-group-text border-0 bg-white ps-4"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="search" class="form-control border-0 py-3" placeholder="ID ou Nom de l'élève...">
+                <button class="btn btn-primary px-4 fw-bold" type="button" onclick="sortCards('name')">A-Z</button>
+            </div>
+            <div id="resultCount" class="mt-3 text-muted small fw-bold {% if current_classe is none and not current_rdv %}d-none{% endif %}">
+                <span id="count">{{ eleves|length }}</span> DOSSIER(S) TROUVÉ(S)
+            </div>
+        </div>
+    </div>
+
+    <!-- Grille des cartes élèves (cachée par défaut, affichée par JS lors de la recherche) -->
+    <div class="row {% if current_classe is none and not current_rdv %}d-none{% endif %} animate__animated animate__fadeIn" id="studentGrid">
+        {% for e in eleves %}
+        <div class="col-lg-4 col-md-6 mb-4 student-card" data-name="{{ e.nom_eleve }}" data-id="{{ e.id_eleve }}">
+            <div class="card border-0 shadow-sm h-100 overflow-hidden">
+                <div class="card-body p-4 text-center">
+                    <div class="avatar-circle mx-auto mb-3 shadow-lg {{ 'bg-male' if e.sexe == 'M' else 'bg-female' }}">
+                        <i class="fas {{ 'fa-user-tie' if e.sexe == 'M' else 'fa-user-nurse' }} text-white"></i>
+                    </div>
+                    <h5 class="fw-bold mb-1">{{ e.nom_eleve }} {{ e.prenom_eleve }}</h5>
+                    <div class="mb-3">
+                        <span class="badge bg-light text-primary border me-1">CLASSE: {{ e.classe }}</span>
+                        <span class="text-muted small fw-bold">ID: #{{ e.id_eleve }}</span>
+                    </div>
+                    <a href="{{ url_for('eleves.dossier', id_eleve=e.id_eleve) }}" class="btn btn-dark w-100 rounded-pill py-2 fw-bold">
+                        Accéder au Dossier <i class="fas fa-chevron-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- État vide (affiché par défaut) -->
+    <div id="emptyState" class="text-center py-5 {% if current_classe is not none or current_rdv %}d-none{% endif %}">
+    <div class="animate__animated animate__fadeIn">
+        <div class="mb-4 text-primary opacity-50">
+            <i class="fas fa-file-medical fa-8x"></i>
+        </div>
+        <h4 class="text-muted fw-light">Aucun patient trouvé</h4>
+        <p class="text-muted small mb-4">Voulez-vous créer un nouveau dossier médical ?</p>
+        
+        <button type="button" class="btn btn-primary btn-pro shadow rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#modalAjoutEleve">
+            <i class="fas fa-user-plus me-2"></i>Inscrire un nouvel élève
+        </button>
+    </div>
+</div>
+
+<!-- Modal d'ajout d'un nouvel élève -->
+<div class="modal fade" id="modalAjoutEleve" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="fas fa-id-card me-2"></i>Nouveau Patient</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('eleves.ajouter_eleve') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">NOM</label>
+                            <input type="text" name="nom" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">PRÉNOM</label>
+                            <input type="text" name="prenom" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">CLASSE</label>
+                            <input type="text" name="classe" class="form-control" placeholder="Ex: 3ème A" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">SEXE</label>
+                            <select name="sexe" class="form-select">
+                                <option value="M">Masculin</option>
+                                <option value="F">Féminin</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">DATE DE NAISSANCE</label>
+                            <input type="date" name="date_naissance" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow">Créer le dossier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+{% endblock %}

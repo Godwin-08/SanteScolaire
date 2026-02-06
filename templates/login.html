@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+{% endblock %}
+
+<!-- Contenu spécifique pour la page de login (remplace block content) -->
+{% block login_content %} <div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate__animated animate__fadeInDown">
+            <div class="p-4 text-center pb-0">
+                <div class="brand-logo mx-auto mb-3" style="width: 64px; height: 64px; font-size: 2rem;">
+                    <i class="fas fa-heart-pulse"></i>
+                </div>
+                <h3 class="text-primary fw-bold mb-0">SanteScolaire</h3>
+                <p class="text-muted small">Portail de gestion médicale</p>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('auth.login') }}" method="POST">
+                    <div class="form-floating mb-3">
+                        <select name="role" class="form-select" id="roleSelect">
+                            <option value="medecin">Médecin</option>
+                            <option value="infirmier">Infirmier</option>
+                            <option value="admin">Administrateur</option>
+                        </select>
+                        <label for="roleSelect">Rôle</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="number" name="user_id" class="form-control" id="userId" placeholder="ID" required>
+                        <label for="userId">Identifiant (ID)</label>
+                    </div>
+                    <div class="form-floating mb-4">
+                        <input type="text" name="nom" class="form-control" id="userNom" placeholder="Nom" required>
+                        <label for="userNom">Nom de famille</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 shadow fw-bold">VÉRIFIER L'ACCÈS</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{{ url_for('static', filename='js/login.js') }}"></script>
+{% endblock %}

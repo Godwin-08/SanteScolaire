@@ -1,0 +1,272 @@
+/* --- SanteScolaire - Design System "Soft Light" --- */
+/* Fichier principal définissant les variables CSS, la typographie et les composants réutilisables */
+
+:root {
+    /* Couleurs Principales */
+    --primary: #10ac84;       /* Jungle Green - Professionnel */
+    --primary-dark: #0e9170;
+    --accent: #1dd1a1;        /* Wild Caribbean Green - Frais */
+    --success: #06d6a0;
+    --danger: #ff6b6b;
+    
+    /* Dégradés */
+    --gradient-primary: linear-gradient(135deg, #10ac84 0%, #1dd1a1 100%);
+    --gradient-card: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+    
+    /* Arrière-plans CLAIRS */
+    --bg-body: #f0f2f5;       /* Gris doux */
+    --bg-card: #ffffff;       /* Blanc pur */
+    
+    /* Typographie Standard */
+    --text-main: #2d3436;     /* Gris foncé */
+    --text-muted: #636e72;    /* Gris moyen */
+    
+    /* Ombres & Bordures */
+    --shadow-soft: 0 8px 30px rgba(0,0,0,0.05);
+    --shadow-hover: 0 20px 40px rgba(16, 172, 132, 0.15);
+    --radius: 20px;
+}
+
+/* Configuration de base du corps de page */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-body);
+    background-image: none; /* Suppression du dégradé blanc */
+    color: var(--text-main);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* --- Surcharge Bootstrap (Pour adapter le framework à notre charte graphique) --- */
+.bg-primary { background: var(--gradient-primary) !important; }
+.text-primary { color: var(--primary) !important; font-weight: 600; }
+
+.bg-light { background-color: #f8f9fa !important; color: var(--text-main) !important; }
+.bg-white { background-color: #ffffff !important; color: var(--text-main) !important; }
+.text-dark { color: #2d3436 !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-secondary { color: #636e72 !important; }
+.border, .border-top, .border-bottom, .border-start, .border-end { border-color: #dfe6e9 !important; }
+
+/* --- Navbar (Barre de navigation avec effet de flou) --- */
+.navbar {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(12px);
+    padding: 1rem 0;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.03);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.navbar-brand {
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: var(--primary) !important;
+    display: flex;
+    align-items: center;
+    letter-spacing: -0.5px;
+}
+
+.brand-logo {
+    width: 40px;
+    height: 40px;
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: 12px; /* Carré arrondi moderne */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 12px rgba(16, 172, 132, 0.4);
+}
+
+.nav-link {
+    font-weight: 600;
+    color: var(--text-main) !important;
+    margin-left: 1rem;
+    transition: color 0.3s;
+}
+
+.nav-link:hover {
+    color: var(--primary) !important;
+}
+
+/* --- Cards (Cartes pour les conteneurs de contenu) --- */
+.card {
+    background: var(--bg-card);
+    border: none !important;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.05) !important;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-hover);
+}
+
+/* --- Boutons personnalisés --- */
+.btn {
+    border-radius: 12px;
+    padding: 12px 28px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    border: none;
+    box-shadow: 0 4px 15px rgba(16, 172, 132, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0e9170 0%, #10ac84 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(16, 172, 132, 0.4);
+}
+
+.btn-dark {
+    background-color: #2d3436;
+    border: none;
+    color: #fff;
+}
+
+.btn-outline-primary {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: transparent;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary);
+    color: white;
+}
+
+/* --- Formulaires (Inputs et Selects modernes) --- */
+.form-control, .form-select {
+    background-color: #f8f9fa !important;
+    border: 1px solid #dfe6e9;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    color: var(--text-main) !important;
+    transition: all 0.3s;
+}
+
+.form-control::placeholder { color: #b2bec3; }
+
+.form-control:focus, .form-select:focus {
+    background-color: #ffffff !important;
+    border-color: var(--primary);
+    box-shadow: none;
+    color: var(--text-main) !important;
+}
+
+/* Gestion de l'autofill (remplissage auto) qui force un fond blanc */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+    -webkit-text-fill-color: var(--text-main) !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: var(--text-main);
+}
+
+/* Options du menu déroulant (Select) en mode sombre */
+select option {
+    background-color: #ffffff;
+    color: var(--text-main);
+}
+
+/* Suppression des flèches (spinners) sur les inputs nombre (ID) qui peuvent créer des artefacts blancs */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] { -moz-appearance: textfield; }
+
+/* Champs désactivés plus sombres */
+.form-control:disabled, .form-control[readonly] {
+    background-color: #e9ecef;
+    opacity: 1;
+}
+
+/* Correction des Labels Flottants (Form Floating) */
+.form-floating > label {
+    color: var(--text-muted) !important;
+}
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label,
+.form-floating > .form-select ~ label {
+    color: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* --- Avatars & Badges (Utilisés dans le profil et le dashboard) --- */
+.avatar-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.bg-male { 
+    background: linear-gradient(135deg, #4cc9f0 0%, #4361ee 100%) !important; 
+}
+.bg-female { 
+    background: linear-gradient(135deg, #f72585 0%, #b5179e 100%) !important; 
+}
+
+.badge {
+    padding: 0.6em 1em;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* --- List Group & Tables (Pour les listes de RDV) --- */
+.list-group-item {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    border-color: rgba(0,0,0,0.1);
+}
+
+/* --- Modals (Fenêtres contextuelles) --- */
+.modal-content {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+}
+.modal-header, .modal-footer {
+    border-color: rgba(0,0,0,0.1);
+}
+.btn-close { filter: none; }
+
+/* --- Utilitaires CSS --- */
+.shadow-lg { box-shadow: var(--shadow-hover) !important; }
+.rounded-4 { border-radius: var(--radius) !important; }
+
+/* --- Animations (Entrée en fondu vers le haut) --- */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate__fadeInUp, .animate__fadeIn {
+    animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* --- Styles d'impression (Print) --- */
+@media print {
+    .navbar, .btn, .no-print, .modal, .sticky-top { display: none !important; }
+    .print-only { display: block !important; }
+    body { background-color: white !important; -webkit-print-color-adjust: exact; }
+    .card { box-shadow: none !important; border: 1px solid #eee !important; break-inside: avoid; }
+    .container { max-width: 100% !important; width: 100% !important; padding: 0 !important; }
+    a { text-decoration: none !important; color: black !important; }
+}
+.print-only { display: none; }

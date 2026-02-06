@@ -1,0 +1,22 @@
+/* Styles spécifiques à la page de connexion */
+/* Surcharge les styles par défaut de Bootstrap Floating Labels pour correspondre au thème vert */
+
+/* 1. Couleur du texte saisi dans les champs */
+.form-control, .form-select {
+    color: #2d3436 !important;
+    caret-color: #10ac84; /* Le curseur clignotant devient vert */
+}
+
+/* 2. Couleur des labels "Identifiant", "Rôle" */
+.form-floating > label {
+    color: #636e72 !important;
+}
+
+/* 3. Couleur des labels quand le champ est actif ou rempli (Vert SanteScolaire) */
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label,
+.form-floating > .form-select ~ label {
+    color: #10ac84 !important;
+    font-weight: 600;
+    opacity: 1;
+}

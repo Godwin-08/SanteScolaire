@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de Bord - SanteScolaire{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- En-tête du Dashboard avec message de bienvenue et boutons d'action -->
+<div class="container py-5 animate__animated animate__fadeIn">
+    <div class="d-flex align-items-center mb-5">
+        <div class="p-3 bg-white shadow-sm rounded-circle me-3">
+            <i class="fas fa-analytics fa-2x text-primary"></i>
+        </div>
+        <div>
+            <h2 class="fw-bold mb-0 text-dark" style="letter-spacing: -1px;">
+                {% if session.user_role == 'medecin' %}Espace Médecin
+                {% elif session.user_role == 'infirmier' %}Pilotage Infirmerie
+                {% else %}Administration Globale{% endif %}
+            </h2>
+            <p class="text-muted mb-0">Tableau de Bord &mdash; Bienvenue, {{ session.username }}</p>
+        </div>
+        {% if session.user_role != 'admin' %}
+        <div class="ms-auto">
+            <a href="{{ url_for('eleves.index') }}" class="btn btn-primary shadow-sm rounded-pill px-4">
+                <i class="fas fa-search me-2"></i>Rechercher un patient
+            </a>
+        </div>
+        {% endif %}
+        {% if session.user_role == 'admin' %}
+        <div class="ms-auto">
+            <a href="{{ url_for('admin.panel') }}" class="btn btn-dark shadow-sm rounded-pill px-4"><i class="fas fa-users-cog me-2"></i>Gérer le Personnel</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Section KPIs : Cartes statistiques (Patients, Consultations, Semaine) -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 d-flex flex-row align-items-center h-100">
+                <div class="avatar-circle bg-primary bg-opacity-10 text-primary me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small fw-bold mb-0 text-uppercase">{{ 'Mes Patients' if session.user_role == 'medecin' else 'Total Patients' }}</h6>
+                    <h3 class="fw-bold mb-0 text-dark">{{ nb_eleves }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 d-flex flex-row align-items-center h-100">
+                <div class="avatar-circle bg-success bg-opacity-10 text-success me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                    <i class="fas fa-notes-medical"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small fw-bold mb-0 text-uppercase">{{ 'Mes Consultations' if session.user_role == 'medecin' else 'Total Consultations' }}</h6>
+                    <h3 class="fw-bold mb-0 text-dark">{{ nb_consultations }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 d-flex flex-row align-items-center h-100">
+                <div class="avatar-circle bg-warning bg-opacity-10 text-warning me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                    <i class="fas fa-calendar-week"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small fw-bold mb-0 text-uppercase">Cette Semaine</h6>
+                    <h3 class="fw-bold mb-0 text-dark">{{ total_semaine }} <span class="text-muted fs-6 fw-normal">visites</span></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Graphiques : Canvas pour Chart.js -->
+    <div class="row g-4">
+        {% if pie_labels %}
+        <div class="col-md-6">
+            <div class="card border-0 shadow-lg rounded-4 p-4 h-100 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">{{ pie_title }}</h5>
+                        <small class="text-muted">{{ pie_subtitle }}</small>
+                    </div>
+                    <span class="badge bg-soft-primary text-primary rounded-pill px-3"><i class="fas fa-chart-pie me-1"></i>Analyse</span>
+                </div>
+                <!-- Zone de dessin pour le camembert -->
+                <canvas id="pieChart" style="max-height: 350px;"></canvas>
+                {% if pie_info %}
+                <div class="mt-4 pt-3 border-top text-center">
+                    <small class="text-muted">{{ pie_info | safe }}</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="{{ 'col-md-6' if pie_labels else 'col-md-12' }}">
+            <div class="card border-0 shadow-lg rounded-4 p-4 h-100 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">{{ bar_title }}</h5>
+                        <small class="text-muted">{{ bar_subtitle }}</small>
+                    </div>
+                    <div>
+                        <button id="printReportBtn" class="btn btn-sm btn-outline-secondary rounded-pill me-2">
+                            <i class="fas fa-print me-1"></i>Imprimer
+                        </button>
+                        <span class="badge bg-soft-primary text-primary rounded-pill px-3"><i class="fas fa-chart-bar me-1"></i>Tendance</span>
+                    </div>
+                </div>
+                <canvas id="jourChart" style="max-height: 350px;"></canvas>
+                <div class="mt-4 pt-3 border-top text-center">
+                    <small class="text-muted">Pic d'activité : <strong class="text-primary">{{ total_semaine }}</strong> consultations récentes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Agenda : Tableau des prochains rendez-vous -->
+    {% if session.user_role != 'admin' %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-lg rounded-4 p-4 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold text-dark mb-0"><i class="fas fa-calendar-alt me-2 text-primary"></i>{{ 'Mon Agenda' if session.user_role == 'medecin' else 'Agenda de l\'Infirmerie' }}</h5>
+                    <a href="{{ url_for('dashboard.agenda') }}" class="btn btn-sm btn-outline-primary rounded-pill">Voir tout l'agenda</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" class="border-0 rounded-start">Patient</th>
+                                <th scope="col" class="border-0">Date & Heure</th>
+                                <th scope="col" class="border-0">Médecin</th>
+                                <th scope="col" class="border-0 rounded-end text-end">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rdv in rdvs %}
+                            <tr>
+                                <td class="fw-bold text-dark">{{ rdv.nom_eleve }} {{ rdv.prenom_eleve }}</td>
+                                <td class="text-primary fw-bold">{{ rdv.date_rdv }}</td>
+                                <td class="text-muted">{% if rdv.nom_medecin %}Dr. {{ rdv.nom_medecin }}{% else %}Non assigné{% endif %}</td>
+                                <td class="text-end"><span class="badge bg-soft-primary text-primary">Programmé</span></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-3">Aucun rendez-vous prévu.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Transfert de données : On passe les variables Python (Jinja) vers le JavaScript via des attributs data- -->
+<div id="chart-data" 
+     data-pie-labels='{{ pie_labels | tojson | safe }}'
+     data-pie-values='{{ pie_values | tojson | safe }}'
+     data-jour-labels='{{ jour_labels | tojson | safe }}'
+     data-jour-values='{{ jour_values | tojson | safe }}'>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

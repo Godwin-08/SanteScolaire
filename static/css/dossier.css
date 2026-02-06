@@ -1,0 +1,10 @@
+/* Couleurs douces pour les badges */
+.bg-soft-primary { background-color: #eef2ff; color: #4e73df; }
+.hover-lift { transition: transform 0.2s; }
+.hover-lift:hover { transform: translateY(-3px); }
+
+/* Style pour l'impression */
+@media print {
+    .navbar, .btn, .sticky-top { display: none !important; }
+    .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+}

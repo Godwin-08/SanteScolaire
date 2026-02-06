@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ajouter_consultation.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-5 animate__animated animate__fadeInUp">
+    <div class="row justify-content-center">
+        <div class="col-md-8"> <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="bg-primary p-4 text-center">
+                    <h3 class="text-white fw-bold mb-0">{% if session.user_role == 'infirmier' %}Consultation Infirmière{% else %}Consultation Médicale{% endif %}</h3>
+                    <p class="text-white-50 small mb-0">Patient : {{ eleve.nom_eleve }} {{ eleve.prenom_eleve }}</p>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Formulaire principal -->
+                    <form action="{{ url_for('consultations.enregistrer_visite') }}" method="POST" id="medForm">
+                        <input type="hidden" name="id_eleve" value="{{ eleve.id_eleve }}">
+
+                        <!-- Constantes Vitales -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-muted small uppercase">Poids (kg)</label>
+                                <input type="number" step="0.1" name="poids" class="form-control" placeholder="Ex: 45.5">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-muted small uppercase">Taille (cm)</label>
+                                <input type="number" name="taille" class="form-control" placeholder="Ex: 155">
+                            </div>
+                            <div class="col-md-6 mt-3">
+                                <label class="form-label fw-bold text-muted small uppercase">Température (°C)</label>
+                                <input type="number" step="0.1" name="temperature" class="form-control" placeholder="Ex: 37.5">
+                            </div>
+                            <div class="col-md-6 mt-3">
+                                <label class="form-label fw-bold text-muted small uppercase">Tension (mmHg)</label>
+                                <input type="text" name="tension" class="form-control" placeholder="Ex: 12/8">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small uppercase">Motif de la visite</label>
+                            <input type="text" name="motif" class="form-control form-control-lg" placeholder="Ex: Maux de tête..." required>
+                        </div>
+
+                        {% if session.user_role == 'medecin' %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small uppercase">Observations cliniques</label>
+                            <textarea name="observations" class="form-control" rows="3" placeholder="Détails de l'examen..." required></textarea>
+                        </div>
+
+                        <!-- Section dynamique pour les prescriptions -->
+                        <div class="mb-4 p-3 border rounded-3 bg-white shadow-sm">
+                            <label class="form-label fw-bold text-primary small uppercase mb-3 d-block">Ordonnance / Prescriptions</label>
+                            
+                            <!-- Conteneur des lignes de médicaments -->
+                            <div id="prescription-container">
+                                <div class="row g-2 mb-2 prescription-row">
+                                    <div class="col-md-5">
+                                        <input type="text" name="medicament[]" class="form-control" placeholder="Médicament">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="text" name="dosage[]" class="form-control" placeholder="Dosage">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="text" name="duree[]" class="form-control" placeholder="Durée">
+                                    </div>
+                                    <div class="col-md-1 text-end">
+                                        <button type="button" class="btn btn-outline-danger border-0" onclick="removeRow(this)">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addRow()">
+                                <i class="fas fa-plus me-1"></i> Ajouter un médicament
+                            </button>
+                        </div>
+                        {% endif %}
+
+                        {% if session.user_role == 'infirmier' %}
+                        <!-- Section RDV pour Infirmier -->
+                        <div class="mb-4 p-4 bg-light rounded-3 border border-primary border-opacity-25">
+                            <h5 class="fw-bold text-primary mb-3"><i class="fas fa-calendar-check me-2"></i>Programmer un RDV Médecin</h5>
+                            <p class="small text-muted mb-3">Vérifiez la disponibilité du médecin avant de valider.</p>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted uppercase">Médecin Spécialiste</label>
+                                    <select name="id_medecin_rdv" class="form-select" required>
+                                        <option value="" selected disabled>Choisir un médecin...</option>
+                                        {% for m in medecins %}
+                                        <option value="{{ m.id_medecin }}">Dr. {{ m.nom_medecin }} ({{ m.specialite }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted uppercase">Date et Heure</label>
+                                    <input type="datetime-local" name="date_rdv" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-pro py-3 shadow">
+                                <i class="fas fa-save me-2"></i>{% if session.user_role == 'infirmier' %}Valider Triage & RDV{% else %}Enregistrer Consultation{% endif %}
+                            </button>
+                            <a href="{{ url_for('eleves.dossier', id_eleve=eleve.id_eleve) }}" class="btn btn-link text-muted">Annuler</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block js %}
+<script src="{{ url_for('static', filename='js/ajouter_consultation.js') }}"></script>
+{% endblock %}
