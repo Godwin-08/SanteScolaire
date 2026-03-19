@@ -1,4 +1,4 @@
-# 🏥 SanteScolaire — Système de Gestion Médicale
+# SanteScolaire — Système de gestion médicale scolaire
 
 ![Python](https://img.shields.io/badge/Python-3.9-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey.svg)
@@ -7,7 +7,7 @@
 
 **SanteScolaire** est une application web Flask pour digitaliser l'infirmerie d'un établissement scolaire : dossiers élèves, consultations, agenda et statistiques, avec une gestion des accès par rôle (admin, médecin, infirmier).
 
-## Fonctionnalités
+## Points clés
 - Dossiers élèves et historique médical
 - Consultations et rendez-vous
 - Tableau de bord et statistiques (Chart.js)
@@ -21,16 +21,6 @@
 - Python 3.9+, Flask 3.x
 - MySQL 8.x
 - Bootstrap 5, Chart.js
-
-## Structure
-- `app/` : application Flask (blueprints, templates, static)
-- `app/blueprints/` : routes et logique web
-- `app/models.py` : modèles SQLAlchemy (migrations)
-- `app/services/` : services (ex: emails)
-- `database/schema.sql` : schéma MySQL
-- `database/seed.sql` : données de démo (optionnel)
-- `app.py` : point d'entrée développement
-- `wsgi.py` : point d'entrée déploiement
 
 ## Installation rapide
 1. Cloner le dépôt
@@ -61,9 +51,13 @@ python app.py
 ```
 
 ## Identifiants de démo (si seed.sql chargé)
-- Admin: ID `1`, Nom `Admin`, Mot de passe `admin123`
-- M?decin: ID `1`, Prenom `Karim`, Nom `Amrani`, Mot de passe `KARI-1-M`
-- Infirmier: ID `1`, Prenom `Youssef`, Nom `Berrada`, Mot de passe `YOUS-1-I`
+| Rôle | ID | Prénom | Nom | Mot de passe |
+| --- | --- | --- | --- | --- |
+| Admin | 1 | - | Admin | admin123 |
+| Médecin | 1 | Karim | Amrani | KARI-1-M |
+| Infirmier | 1 | Youssef | Berrada | YOUS-1-I |
+
+**Connexion :** pour médecin/infirmier, saisir *Prénom + Nom*. Pour l'admin, seul le champ *Nom* est utilisé.
 
 ## Configuration
 Créer un fichier `.env` à la racine (ou définir des variables d'environnement).
@@ -75,12 +69,20 @@ Vous pouvez partir de `.env.example`.
 - `MYSQL_USER` : utilisateur MySQL (optionnel, défaut `root`)
 - `MYSQL_DB` : base MySQL (optionnel, défaut `gestion_hospitaliere_scolaire`)
 
+## Structure
+- `app/` : application Flask (blueprints, templates, static)
+- `app/blueprints/` : routes et logique web
+- `app/models.py` : modèles SQLAlchemy (migrations)
+- `app/services/` : services (ex: emails)
+- `database/schema.sql` : schéma MySQL
+- `database/seed.sql` : données de démo (optionnel)
+- `app.py` : point d'entrée développement
+- `wsgi.py` : point d'entrée déploiement
+
 ## Notes
-- Le schéma est fourni dans `database/schema.sql`.
-- Les données de démo sont dans `database/seed.sql`.
-- Un guide de démonstration est disponible dans `DEMO.md`.
 - Les comptes médecins/infirmiers doivent changer leur mot de passe à la première connexion.
-- Si l'admin laisse le mot de passe vide lors de l'ajout, un mot de passe temporaire est genere au format `NOM4-ID-M` / `NOM4-ID-I`.
+- Si l'admin laisse le mot de passe vide lors de l'ajout, un mot de passe temporaire est généré au format `NOM4-ID-M` / `NOM4-ID-I`.
+- Un guide de démonstration est disponible dans `DEMO.md`.
 
 ## Migrations (Flask-Migrate)
 ```bash
