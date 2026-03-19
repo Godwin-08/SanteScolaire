@@ -61,3 +61,5 @@ Thumbs.db
 
 # Project-specific
 medecin_emails.json
+.tmp/
+.pip-audit-cache/
