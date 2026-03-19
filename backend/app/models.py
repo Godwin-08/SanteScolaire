@@ -6,6 +6,7 @@ class Admin(db.Model):
 
     id_admin = db.Column(db.Integer, primary_key=True)
     nom_admin = db.Column(db.String(100), nullable=False)
+    prenom_admin = db.Column(db.String(100), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
 
 
@@ -14,6 +15,7 @@ class Medecin(db.Model):
 
     id_medecin = db.Column(db.Integer, primary_key=True)
     nom_medecin = db.Column(db.String(100), nullable=False)
+    prenom_medecin = db.Column(db.String(100), nullable=False)
     specialite = db.Column(db.String(100))
     password_hash = db.Column(db.String(255), nullable=False)
     must_change_password = db.Column(db.Boolean, nullable=False, default=True)
@@ -24,6 +26,7 @@ class Infirmier(db.Model):
 
     id_infirmier = db.Column(db.Integer, primary_key=True)
     nom_infirmier = db.Column(db.String(100), nullable=False)
+    prenom_infirmier = db.Column(db.String(100), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     must_change_password = db.Column(db.Boolean, nullable=False, default=True)
 

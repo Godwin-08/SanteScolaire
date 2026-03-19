@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - SanteScolaire{% endblock %}
+
+{% block login_content %}
+<div class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
+    <div class="row w-100 justify-content-center">
+        <!-- Colonne responsive : large sur mobile, centrée et étroite sur desktop -->
+        <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4 animate__fadeInUp">
+            
+            <!-- Gestion des messages d'alerte (Flash) -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show border-0 shadow-sm rounded-4 mb-4" role="alert">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                <div>{{ message }}</div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-body p-4 p-md-5">
+                    <!-- En-tête avec Logo (Utilise la classe .brand-logo de style.css) -->
+                    <div class="text-center mb-5">
+                        <div class="brand-logo mx-auto mb-3">
+                            <span class="fs-3 fw-bold">S</span>
+                        </div>
+                        <h2 class="fw-bold text-dark mb-1">Bienvenue</h2>
+                        <p class="text-muted small">Veuillez vous identifier pour continuer</p>
+                    </div>
+
+                    <!-- Formulaire de connexion -->
+                    <form action="{{ url_for('auth.login') }}" method="POST" autocomplete="off" class="needs-validation" novalidate>
+                        <!-- Identifiant avec Floating Label -->
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="user_id" name="user_id" placeholder="ID" required pattern="[0-9]+" title="L'identifiant doit être composé uniquement de chiffres.">
+                            <label for="user_id">Identifiant professionnel</label>
+                            <div class="invalid-feedback text-start ps-2">
+                                Veuillez saisir un identifiant valide (chiffres uniquement).
+                            </div>
+                        </div>
+
+                        <!-- Sélection du Rôle -->
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="" selected disabled>Choisir votre rôle</option>
+                                <option value="admin">Administrateur</option>
+                                <option value="medecin">Médecin</option>
+                                <option value="infirmier">Infirmier</option>
+                            </select>
+                            <label for="role">Rôle / Fonction</label>
+                        </div>
+
+                        <!-- Mot de passe avec toggle (Utilise .password-toggle de style.css) -->
+                        <div class="form-floating mb-4 position-relative">
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Mot de passe" required>
+                            <label for="password">Mot de passe</label>
+                            <button type="button" class="password-toggle" id="btnToggle">
+                                <small id="toggleText">Afficher</small>
+                            </button>
+                        </div>
+
+                        <!-- Bouton de validation (Utilise .btn-primary de style.css) -->
+                        <button type="submit" class="btn btn-primary w-100 py-3 mb-3 shadow-sm">
+                            Se connecter
+                        </button>
+                        <div class="text-center px-2">
+                            <a class="small text-decoration-none fw-bold" href="{{ url_for('auth.register') }}">Créer un compte</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <p class="text-center mt-4 text-muted small">
+                &copy; 2024 SanteScolaire &bull; Système de gestion infirmerie
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('.needs-validation');
+        
+        // Gestion de la validation Bootstrap 5
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+
+        // Script pour gérer l'affichage du mot de passe
+        document.getElementById('btnToggle').addEventListener('click', function() {
+            const pwd = document.getElementById('password');
+            const txt = document.getElementById('toggleText');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                txt.textContent = 'Masquer';
+            } else {
+                pwd.type = 'password';
+                txt.textContent = 'Afficher';
+            }
+        });
+    });
+</script>
+{% endblock %}

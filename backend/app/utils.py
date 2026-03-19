@@ -1,7 +1,8 @@
 import json
 import os
 
-EMAILS_FILE = "medecin_emails.json"
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+EMAILS_FILE = os.path.join(BASE_DIR, "medecin_emails.json")
 
 
 def get_emails():

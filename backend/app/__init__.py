@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, render_template, session, redirect, url_for
 
 from app.config import Config
@@ -13,7 +15,12 @@ from app.blueprints.profile import profile_bp
 
 
 def create_app():
-    app = Flask(__name__, template_folder="templates", static_folder="static")
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    frontend_dir = os.path.abspath(os.path.join(base_dir, "..", "frontend"))
+    template_dir = os.path.join(frontend_dir, "templates")
+    static_dir = os.path.join(frontend_dir, "static")
+
+    app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
     app.config.from_object(Config())
     app.secret_key = app.config["SECRET_KEY"]
 

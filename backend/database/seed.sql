@@ -1,4 +1,4 @@
-﻿-- Donnees de demo pour SanteScolaire
+﻿﻿-- Donnees de demo pour SanteScolaire
 -- A utiliser apres database/schema.sql
 
 USE gestion_hospitaliere_scolaire;
@@ -15,20 +15,20 @@ TRUNCATE TABLE admin;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Compte admin (mot de passe: admin123)
-INSERT INTO admin (id_admin, nom_admin, password_hash) VALUES
-  (1, 'Admin', 'scrypt:32768:8:1$8GT0FiCnSaa2U9If$bb3499f3f4e6a743159a2b9687c75725747d1ccfda2e22a3d5c4e057b877c6d5f44c08d97fddc4e4035c5a87e852bc492e04c0ca2de795b12eaaff1fcf1cacb1');
+INSERT INTO admin (id_admin, nom_admin, prenom_admin, password_hash) VALUES
+  (1, 'System', 'Admin', 'scrypt:32768:8:1$8GT0FiCnSaa2U9If$bb3499f3f4e6a743159a2b9687c75725747d1ccfda2e22a3d5c4e057b877c6d5f44c08d97fddc4e4035c5a87e852bc492e04c0ca2de795b12eaaff1fcf1cacb1');
 
 -- Personnel medical
 -- Mot de passe medecin: format NOM4-ID-M (a changer a la 1ere connexion)
-INSERT INTO medecin (id_medecin, nom_medecin, specialite, password_hash, must_change_password) VALUES
-  (1, 'Karim Amrani', 'Generaliste', 'scrypt:32768:8:1$DpSlN2F6537eIp0s$429745b8f855665f1007e0cc448c0e45e96ff0211e3440d12c7514bd13d9e877f50c649f4bc613be266eebb0bc14403ff1ca6ea052d04d8df56293fcb19c4522', 1),
-  (2, 'Samira El Fassi', 'Pediatre', 'scrypt:32768:8:1$48JfcNkhrcjWKhMj$2cc107596be0d21083c228b4bcd4b5fa8ed2a5ada1a881ae6d928504cbb0f89cce335a8c643d05a8a24911cd8ad7fc6f54c657919685ce168b5d1b2e040c88d4', 1),
-  (3, 'Hicham Boussaid', 'ORL', 'scrypt:32768:8:1$LF1HRW3qu6UlQLQM$e19c618560a3e051e15bb22c5c53f17e3522b759afe4ac5106df69ebc52b0c03028a466a12c0dbbf532e16e4dee40177f24e9b2d1c6b77c8e7569c72327b78ec', 1);
+INSERT INTO medecin (id_medecin, nom_medecin, prenom_medecin, specialite, password_hash, must_change_password) VALUES
+  (1, 'Amrani', 'Karim', 'Generaliste', 'scrypt:32768:8:1$DpSlN2F6537eIp0s$429745b8f855665f1007e0cc448c0e45e96ff0211e3440d12c7514bd13d9e877f50c649f4bc613be266eebb0bc14403ff1ca6ea052d04d8df56293fcb19c4522', 1),
+  (2, 'El Fassi', 'Samira', 'Pediatre', 'scrypt:32768:8:1$48JfcNkhrcjWKhMj$2cc107596be0d21083c228b4bcd4b5fa8ed2a5ada1a881ae6d928504cbb0f89cce335a8c643d05a8a24911cd8ad7fc6f54c657919685ce168b5d1b2e040c88d4', 1),
+  (3, 'Boussaid', 'Hicham', 'ORL', 'scrypt:32768:8:1$LF1HRW3qu6UlQLQM$e19c618560a3e051e15bb22c5c53f17e3522b759afe4ac5106df69ebc52b0c03028a466a12c0dbbf532e16e4dee40177f24e9b2d1c6b77c8e7569c72327b78ec', 1);
 
 -- Mot de passe infirmier: format NOM4-ID-I (a changer a la 1ere connexion)
-INSERT INTO infirmier (id_infirmier, nom_infirmier, password_hash, must_change_password) VALUES
-  (1, 'Youssef Berrada', 'scrypt:32768:8:1$Q88A1JtSBipPA6I2$4c546dbf4777a889ebf7c2aabb5eb184bd584aa714ced510b5ae7135b000431d92cf17c8c3d31809402fc11f68fb5df94451a46c9053842dc989d98d13756488', 1),
-  (2, 'Imane Rachidi', 'scrypt:32768:8:1$EpTtW1PqYvn6uA8u$139a649c617448bdedaa5db8662703b1767e4cb77c5ab306c1d7520d2e77a8e56686286dd35f0a07dfdaa9647f461ae802b2cabb5ef8837ea9f51a820f38f6d1', 1);
+INSERT INTO infirmier (id_infirmier, nom_infirmier, prenom_infirmier, password_hash, must_change_password) VALUES
+  (1, 'Berrada', 'Youssef', 'scrypt:32768:8:1$Q88A1JtSBipPA6I2$4c546dbf4777a889ebf7c2aabb5eb184bd584aa714ced510b5ae7135b000431d92cf17c8c3d31809402fc11f68fb5df94451a46c9053842dc989d98d13756488', 1),
+  (2, 'Rachidi', 'Imane', 'scrypt:32768:8:1$EpTtW1PqYvn6uA8u$139a649c617448bdedaa5db8662703b1767e4cb77c5ab306c1d7520d2e77a8e56686286dd35f0a07dfdaa9647f461ae802b2cabb5ef8837ea9f51a820f38f6d1', 1);
 
 -- Eleves
 INSERT INTO eleve (id_eleve, nom_eleve, prenom_eleve, classe, sexe, date_naissance) VALUES

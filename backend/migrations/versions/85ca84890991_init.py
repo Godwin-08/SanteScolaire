@@ -21,6 +21,7 @@ def upgrade():
     op.create_table('admin',
     sa.Column('id_admin', sa.Integer(), nullable=False),
     sa.Column('nom_admin', sa.String(length=100), nullable=False),
+    sa.Column('prenom_admin', sa.String(length=100), nullable=False),
     sa.Column('password_hash', sa.String(length=255), nullable=False),
     sa.PrimaryKeyConstraint('id_admin')
     )
@@ -76,7 +77,10 @@ def upgrade():
                existing_type=mysql.VARCHAR(length=50),
                type_=sa.String(length=100),
                existing_nullable=False)
-        batch_op.drop_column('prenom_infirmier')
+        batch_op.alter_column('prenom_infirmier',
+               existing_type=mysql.VARCHAR(length=50),
+               type_=sa.String(length=100),
+               existing_nullable=False)
 
     with op.batch_alter_table('medecin', schema=None) as batch_op:
         batch_op.add_column(sa.Column('password_hash', sa.String(length=255), nullable=False))
@@ -84,7 +88,10 @@ def upgrade():
                existing_type=mysql.VARCHAR(length=50),
                type_=sa.String(length=100),
                existing_nullable=False)
-        batch_op.drop_column('prenom_medecin')
+        batch_op.alter_column('prenom_medecin',
+               existing_type=mysql.VARCHAR(length=50),
+               type_=sa.String(length=100),
+               existing_nullable=False)
 
     with op.batch_alter_table('prescription', schema=None) as batch_op:
         batch_op.alter_column('medicament',
@@ -148,7 +155,10 @@ def downgrade():
                nullable=True)
 
     with op.batch_alter_table('medecin', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('prenom_medecin', mysql.VARCHAR(length=50), nullable=True))
+        batch_op.alter_column('prenom_medecin',
+               existing_type=sa.String(length=100),
+               type_=mysql.VARCHAR(length=50),
+               existing_nullable=False)
         batch_op.alter_column('nom_medecin',
                existing_type=sa.String(length=100),
                type_=mysql.VARCHAR(length=50),
@@ -156,7 +166,10 @@ def downgrade():
         batch_op.drop_column('password_hash')
 
     with op.batch_alter_table('infirmier', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('prenom_infirmier', mysql.VARCHAR(length=50), nullable=True))
+        batch_op.alter_column('prenom_infirmier',
+               existing_type=sa.String(length=100),
+               type_=mysql.VARCHAR(length=50),
+               existing_nullable=False)
         batch_op.alter_column('nom_infirmier',
                existing_type=sa.String(length=100),
                type_=mysql.VARCHAR(length=50),

@@ -5,7 +5,7 @@ import secrets
 import unicodedata
 
 from app import utils
-from app.constants import ROLE_ADMIN
+from app.constants import ROLE_ADMIN, ROLE_INFIRMIER, ROLE_MEDECIN
 from app.db import mysql
 
 admin_bp = Blueprint('admin', __name__)
@@ -40,7 +40,8 @@ def panel():
     emails = utils.get_emails()
     for m in medecins:
         # On ajoute le champ 'email' au dictionnaire médecin s'il existe dans le JSON
-        m['email'] = emails.get(str(m['id_medecin']), '')
+        key = f"{ROLE_MEDECIN}_{m['id_medecin']}"
+        m['email'] = emails.get(key) or emails.get(str(m['id_medecin']), '')
     
     cur.execute("SELECT * FROM infirmier")
     infirmiers = cur.fetchall()
@@ -56,7 +57,6 @@ def ajouter_personnel():
     type_perso = request.form['type'] # 'medecin' ou 'infirmier'
     prenom = request.form.get('prenom', '').strip()
     nom = request.form.get('nom', '').strip()
-    full_name = " ".join([p for p in [prenom, nom] if p]).strip()
     specialite = request.form.get('specialite', '') # Seulement pour medecin
     email = request.form.get('email', '')
     password = request.form.get('password', '').strip()
@@ -69,14 +69,14 @@ def ajouter_personnel():
     try:
         if type_perso == 'medecin':
             cur.execute(
-                "INSERT INTO medecin (nom_medecin, specialite, password_hash, must_change_password) VALUES (%s, %s, %s, 1)",
-                (full_name, specialite, password_hash),
+                "INSERT INTO medecin (nom_medecin, prenom_medecin, specialite, password_hash, must_change_password) VALUES (%s, %s, %s, %s, 1)",
+                (nom, prenom, specialite, password_hash),
             )
             # Recuperation de l'ID genere par MySQL pour lier l'email
             new_id = cur.lastrowid
             
             if not password:
-                temp_password = _build_temp_password(full_name, new_id, "M")
+                temp_password = _build_temp_password(nom, new_id, "M")
                 cur.execute(
                     "UPDATE medecin SET password_hash = %s, must_change_password = 1 WHERE id_medecin = %s",
                     (generate_password_hash(temp_password), new_id),
@@ -85,17 +85,18 @@ def ajouter_personnel():
             # Sauvegarde de l'email dans le JSON
             if email:
                 emails_data = utils.get_emails()
-                emails_data[str(new_id)] = email
+                emails_data.pop(str(new_id), None)
+                emails_data[f"{ROLE_MEDECIN}_{new_id}"] = email
                 utils.save_emails_data(emails_data)
         else:
             cur.execute(
-                "INSERT INTO infirmier (nom_infirmier, password_hash, must_change_password) VALUES (%s, %s, 1)",
-                (full_name, password_hash),
+                "INSERT INTO infirmier (nom_infirmier, prenom_infirmier, password_hash, must_change_password) VALUES (%s, %s, %s, 1)",
+                (nom, prenom, password_hash),
             )
             new_id = cur.lastrowid
             
             if not password:
-                temp_password = _build_temp_password(full_name, new_id, "I")
+                temp_password = _build_temp_password(nom, new_id, "I")
                 cur.execute(
                     "UPDATE infirmier SET password_hash = %s, must_change_password = 1 WHERE id_infirmier = %s",
                     (generate_password_hash(temp_password), new_id),
@@ -129,11 +130,17 @@ def supprimer_personnel(type_perso, id_perso):
             
             # Suppression de l'email associé dans le JSON
             emails_data = utils.get_emails()
-            if str(id_perso) in emails_data:
-                del emails_data[str(id_perso)]
-                utils.save_emails_data(emails_data)
+            key = f"{ROLE_MEDECIN}_{id_perso}"
+            emails_data.pop(key, None)
+            emails_data.pop(str(id_perso), None)
+            utils.save_emails_data(emails_data)
         elif type_perso == 'infirmier':
             cur.execute("DELETE FROM infirmier WHERE id_infirmier = %s", [id_perso])
+            emails_data = utils.get_emails()
+            key = f"{ROLE_INFIRMIER}_{id_perso}"
+            emails_data.pop(key, None)
+            emails_data.pop(str(id_perso), None)
+            utils.save_emails_data(emails_data)
         mysql.connection.commit()
         flash("Membre du personnel supprimé avec succès.", "success")
     except Exception as e:
@@ -153,14 +160,13 @@ def modifier_personnel():
     type_perso = request.form['type']
     prenom = request.form.get('prenom', '').strip()
     nom = request.form.get('nom', '').strip()
-    full_name = " ".join([p for p in [prenom, nom] if p]).strip()
     
     cur = mysql.connection.cursor()
     if type_perso == 'medecin':
         specialite = request.form.get('specialite', '')
         email = request.form.get('email', '')
         password = request.form.get('password', '')
-        cur.execute("UPDATE medecin SET nom_medecin = %s, specialite = %s WHERE id_medecin = %s", (full_name, specialite, id_perso))
+        cur.execute("UPDATE medecin SET nom_medecin = %s, prenom_medecin = %s, specialite = %s WHERE id_medecin = %s", (nom, prenom, specialite, id_perso))
 
         if password:
             cur.execute(
@@ -170,11 +176,12 @@ def modifier_personnel():
         
         # Mise à jour de l'email dans le JSON
         emails_data = utils.get_emails()
-        emails_data[str(id_perso)] = email
+        emails_data.pop(str(id_perso), None)
+        emails_data[f"{ROLE_MEDECIN}_{id_perso}"] = email
         utils.save_emails_data(emails_data)
     elif type_perso == 'infirmier':
         password = request.form.get('password', '')
-        cur.execute("UPDATE infirmier SET nom_infirmier = %s WHERE id_infirmier = %s", (full_name, id_perso))
+        cur.execute("UPDATE infirmier SET nom_infirmier = %s, prenom_infirmier = %s WHERE id_infirmier = %s", (nom, prenom, id_perso))
 
         if password:
             cur.execute(

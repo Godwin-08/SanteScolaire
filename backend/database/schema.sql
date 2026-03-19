@@ -10,12 +10,14 @@ USE gestion_hospitaliere_scolaire;
 CREATE TABLE IF NOT EXISTS admin (
   id_admin INT AUTO_INCREMENT PRIMARY KEY,
   nom_admin VARCHAR(100) NOT NULL,
+  prenom_admin VARCHAR(100) NOT NULL,
   password_hash VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS medecin (
   id_medecin INT AUTO_INCREMENT PRIMARY KEY,
   nom_medecin VARCHAR(100) NOT NULL,
+  prenom_medecin VARCHAR(100) NOT NULL,
   specialite VARCHAR(100) DEFAULT NULL,
   password_hash VARCHAR(255) NOT NULL,
   must_change_password TINYINT(1) NOT NULL DEFAULT 1
@@ -24,6 +26,7 @@ CREATE TABLE IF NOT EXISTS medecin (
 CREATE TABLE IF NOT EXISTS infirmier (
   id_infirmier INT AUTO_INCREMENT PRIMARY KEY,
   nom_infirmier VARCHAR(100) NOT NULL,
+  prenom_infirmier VARCHAR(100) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   must_change_password TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -27,7 +27,7 @@ def mon_profil():
     # Cas Admin : info depuis la table admin
     if role == ROLE_ADMIN:
         cur = mysql.connection.cursor()
-        cur.execute("SELECT id_admin as id, nom_admin as nom FROM admin WHERE id_admin = %s", [user_id])
+        cur.execute("SELECT id_admin as id, nom_admin as nom, prenom_admin as prenom FROM admin WHERE id_admin = %s", [user_id])
         user = cur.fetchone() or {'nom': 'Administrateur', 'id': user_id}
         cur.close()
         return render_template('profile.html', user=user, is_admin=True)
@@ -35,18 +35,17 @@ def mon_profil():
     cur = mysql.connection.cursor()
     if role == ROLE_MEDECIN:
         # Récupération des infos médecin
-        cur.execute("SELECT *, nom_medecin as nom FROM medecin WHERE id_medecin = %s", [user_id])
+        cur.execute("SELECT *, nom_medecin as nom, prenom_medecin as prenom FROM medecin WHERE id_medecin = %s", [user_id])
         user = cur.fetchone()
         # Injection de l'email depuis le JSON auxiliaire
         if user:
-            user['email'] = utils.get_emails().get(str(user_id), '')
-            user['prenom'], user['nom_famille'] = _split_full_name(user.get('nom', ''))
+            emails = utils.get_emails()
+            key = f"{ROLE_MEDECIN}_{user_id}"
+            user['email'] = emails.get(key) or emails.get(str(user_id), '')
     else:
         # Récupération des infos infirmier
-        cur.execute("SELECT *, nom_infirmier as nom FROM infirmier WHERE id_infirmier = %s", [user_id])
+        cur.execute("SELECT *, nom_infirmier as nom, prenom_infirmier as prenom FROM infirmier WHERE id_infirmier = %s", [user_id])
         user = cur.fetchone()
-        if user:
-            user['prenom'], user['nom_famille'] = _split_full_name(user.get('nom', ''))
         
     cur.close()
     
@@ -61,25 +60,24 @@ def update_profil():
     user_id = session.get('user_id')
     prenom = request.form.get('prenom', '').strip()
     nom = request.form.get('nom', '').strip()
-    nouveau_nom = ' '.join([p for p in [prenom, nom] if p]).strip()
     
     cur = mysql.connection.cursor()
     
     if role == ROLE_MEDECIN:
         specialite = request.form['specialite']
         email = request.form['email']
-        cur.execute("UPDATE medecin SET nom_medecin = %s, specialite = %s WHERE id_medecin = %s", (nouveau_nom, specialite, user_id))
+        cur.execute("UPDATE medecin SET nom_medecin = %s, prenom_medecin = %s, specialite = %s WHERE id_medecin = %s", (nom, prenom, specialite, user_id))
         
         # Mise à jour JSON
         emails_data = utils.get_emails()
         emails_data[str(user_id)] = email
         utils.save_emails_data(emails_data)
     elif role == ROLE_INFIRMIER:
-        cur.execute("UPDATE infirmier SET nom_infirmier = %s WHERE id_infirmier = %s", (nouveau_nom, user_id))
+        cur.execute("UPDATE infirmier SET nom_infirmier = %s, prenom_infirmier = %s WHERE id_infirmier = %s", (nom, prenom, user_id))
         
     mysql.connection.commit()
     cur.close()
     
-    session['username'] = nouveau_nom # Mise à jour de la session
+    session['username'] = f"{prenom} {nom}".strip() # Mise à jour de la session
     flash("Votre profil a été mis à jour avec succès.", "success")
     return redirect(url_for('profile.mon_profil'))

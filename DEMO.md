@@ -2,17 +2,20 @@
 
 ### 1) Initialisation rapide
 ```bash
+cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
 ```bash
+cd backend
 mysql -u root -p < database/schema.sql
 mysql -u root -p < database/seed.sql
 ```
 
 ```bash
+cd backend
 python app.py
 ```
 

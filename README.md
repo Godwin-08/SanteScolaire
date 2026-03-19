@@ -27,6 +27,7 @@
 ```bash
 git clone https://github.com/Godwin-08/SanteScolaire.git
 cd SanteScolaire
+cd backend
 ```
 2. Installer les dépendances
 ```bash
@@ -39,14 +40,17 @@ pip install -r requirements.txt
 ```
 3. Importer le schéma MySQL
 ```bash
+cd backend
 mysql -u root -p < database/schema.sql
 ```
 4. (Optionnel) Charger des données de démo
 ```bash
+cd backend
 mysql -u root -p < database/seed.sql
 ```
 5. Lancer l'application
 ```bash
+cd backend
 python app.py
 ```
 
@@ -57,10 +61,10 @@ python app.py
 | Médecin | 1 | Karim | Amrani | KARI-1-M |
 | Infirmier | 1 | Youssef | Berrada | YOUS-1-I |
 
-**Connexion :** pour médecin/infirmier, saisir *Prénom + Nom*. Pour l'admin, seul le champ *Nom* est utilisé.
+**Connexion :** pour médecin/infirmier/admin, saisir l'**ID** et le rôle, puis le mot de passe.
 
 ## Configuration
-Créer un fichier `.env` à la racine (ou définir des variables d'environnement).
+Créer un fichier `.env` dans `backend/` (ou définir des variables d'environnement).
 Vous pouvez partir de `.env.example`.
 
 - `SECRET_KEY` : clé de session
@@ -70,22 +74,25 @@ Vous pouvez partir de `.env.example`.
 - `MYSQL_DB` : base MySQL (optionnel, défaut `gestion_hospitaliere_scolaire`)
 
 ## Structure
-- `app/` : application Flask (blueprints, templates, static)
-- `app/blueprints/` : routes et logique web
-- `app/models.py` : modèles SQLAlchemy (migrations)
-- `app/services/` : services (ex: emails)
-- `database/schema.sql` : schéma MySQL
-- `database/seed.sql` : données de démo (optionnel)
-- `app.py` : point d'entrée développement
-- `wsgi.py` : point d'entrée déploiement
+- `backend/app/` : application Flask (blueprints, services, etc.)
+- `backend/app/blueprints/` : routes et logique web
+- `backend/app/models.py` : modèles SQLAlchemy (migrations)
+- `backend/app/services/` : services (ex: emails)
+- `frontend/templates/` : templates Jinja2
+- `frontend/static/` : assets statiques (CSS/JS)
+- `backend/database/schema.sql` : schéma MySQL
+- `backend/database/seed.sql` : données de démo (optionnel)
+- `backend/app.py` : point d'entrée développement
+- `backend/wsgi.py` : point d'entrée déploiement
 
 ## Notes
 - Les comptes médecins/infirmiers doivent changer leur mot de passe à la première connexion.
-- Si l'admin laisse le mot de passe vide lors de l'ajout, un mot de passe temporaire est généré au format `NOM4-ID-M` / `NOM4-ID-I`.
+- Si l'admin laisse le mot de passe vide lors de l'ajout, l'utilisateur doit activer son compte via `/activate` et definir son mot de passe.
 - Un guide de démonstration est disponible dans `DEMO.md`.
 
 ## Migrations (Flask-Migrate)
 ```bash
+cd backend
 flask --app app:create_app db init
 flask --app app:create_app db migrate -m "init"
 flask --app app:create_app db upgrade
@@ -93,6 +100,7 @@ flask --app app:create_app db upgrade
 
 ## Tests
 ```bash
+cd backend
 pip install -r requirements-dev.txt
 pytest
 ```

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Inscription - SanteScolaire{% endblock %}
+
+{% block login_content %}
+<div class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
+    <div class="row w-100 justify-content-center">
+        <div class="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5 animate__fadeInUp">
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-body p-4 p-md-5">
+                    <div class="text-center mb-4">
+                        <div class="brand-logo mx-auto mb-3">
+                            <span class="fs-3 fw-bold">S</span>
+                        </div>
+                        <h2 class="fw-bold text-dark mb-1">Créer un compte</h2>
+                        <p class="text-muted small">Rejoignez la plateforme SanteScolaire</p>
+                    </div>
+
+                    <form action="{{ url_for('auth.register') }}" method="POST" class="needs-validation" novalidate>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" name="prenom" id="prenom" placeholder="Prénom" required>
+                                    <label for="prenom">Prénom</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" name="nom" id="nom" placeholder="Nom" required>
+                                    <label for="nom">Nom</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input type="email" class="form-control" name="email" id="email" placeholder="nom@etablissement.fr" required>
+                            <label for="email">Adresse Email professionnelle</label>
+                            <div class="invalid-feedback text-start ps-2">Veuillez saisir une adresse email valide.</div>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <select class="form-select" name="role" id="role" required>
+                                <option value="" selected disabled>Votre fonction...</option>
+                                <option value="medecin">Médecin</option>
+                                <option value="infirmier">Infirmier</option>
+                                <option value="admin">Administrateur</option>
+                            </select>
+                            <label for="role">Rôle professionnel</label>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control" name="password" id="password" placeholder="Mot de passe" required>
+                            <label for="password">Mot de passe</label>
+                        </div>
+
+                        <div class="form-floating mb-4">
+                            <input type="password" class="form-control" name="confirm_password" id="confirm_password" placeholder="Confirmer" required>
+                            <label for="confirm_password">Confirmer le mot de passe</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 mb-3 shadow-sm">
+                            S'inscrire
+                        </button>
+                        
+                        <div class="text-center">
+                            <span class="small text-muted">Déjà un compte ?</span>
+                            <a class="small fw-bold" href="{{ url_for('auth.login') }}">Se connecter</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('.needs-validation');
+        if (!form) return;
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+</script>
+{% endblock %}

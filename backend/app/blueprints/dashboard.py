@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, redirect, session, url_for, request, flash
+from datetime import datetime
 
 from app.constants import (
     RDV_STATUT_ANNULE,
@@ -48,7 +49,7 @@ def dashboard():
     if role == ROLE_MEDECIN:
         # Le médecin ne voit que ses propres RDV futurs
         cur.execute("""
-            SELECT r.*, e.nom_eleve, e.prenom_eleve, m.nom_medecin
+            SELECT r.*, e.nom_eleve, e.prenom_eleve, m.nom_medecin, m.prenom_medecin
             FROM rdv r 
             JOIN eleve e ON r.id_eleve = e.id_eleve 
             LEFT JOIN medecin m ON r.id_medecin = m.id_medecin
@@ -60,7 +61,7 @@ def dashboard():
     elif role == ROLE_INFIRMIER:
         # L'infirmier voit tous les RDV pour gérer le flux
         cur.execute("""
-            SELECT r.*, e.nom_eleve, e.prenom_eleve, m.nom_medecin
+            SELECT r.*, e.nom_eleve, e.prenom_eleve, m.nom_medecin, m.prenom_medecin
             FROM rdv r 
             JOIN eleve e ON r.id_eleve = e.id_eleve 
             LEFT JOIN medecin m ON r.id_medecin = m.id_medecin
@@ -236,22 +237,26 @@ def annuler_journee():
     if not date_annulation:
         flash("Veuillez sélectionner une date valide.", "warning")
         return redirect(url_for('dashboard.agenda'))
-
-    cur = mysql.connection.cursor()
     
-    # On ne touche que les RDV "programmé" ou NULL (pas ceux déjà faits ou annulés)
-    query = "UPDATE rdv SET statut = %s WHERE DATE(date_rdv) = %s AND (statut = %s OR statut IS NULL)"
-    params = [RDV_STATUT_ANNULE, date_annulation, RDV_STATUT_PROGRAMME]
+    try:
+        datetime.strptime(date_annulation, '%Y-%m-%d')
+        
+        cur = mysql.connection.cursor()
+        # On ne touche que les RDV "programmé" ou NULL
+        query = "UPDATE rdv SET statut = %s WHERE DATE(date_rdv) = %s AND (statut = %s OR statut IS NULL)"
+        params = [RDV_STATUT_ANNULE, date_annulation, RDV_STATUT_PROGRAMME]
 
-    if role == ROLE_MEDECIN:
-        # Le médecin ne peut annuler que SES rendez-vous
-        query += " AND id_medecin = %s"
-        params.append(user_id)
+        if role == ROLE_MEDECIN:
+            query += " AND id_medecin = %s"
+            params.append(user_id)
 
-    cur.execute(query, params)
-    mysql.connection.commit()
-    affected = cur.rowcount
-    cur.close()
+        cur.execute(query, params)
+        mysql.connection.commit()
+        affected = cur.rowcount
+        cur.close()
+    except ValueError:
+        flash("Format de date invalide.", "danger")
+        return redirect(url_for('dashboard.agenda'))
 
     if affected > 0:
         flash(f"{affected} rendez-vous ont été annulés pour la journée du {date_annulation}.", "success")
