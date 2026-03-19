@@ -1,6 +1,23 @@
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.querySelector('form');
     const submitBtn = document.querySelector('button[type="submit"]');
+    const roleSelect = document.getElementById('roleSelect');
+    const prenomGroup = document.getElementById('prenomGroup');
+    const prenomInput = document.getElementById('userPrenom');
+
+    const togglePrenomField = () => {
+        if (!roleSelect || !prenomGroup || !prenomInput) return;
+        const isAdmin = roleSelect.value === 'admin';
+        prenomInput.required = !isAdmin;
+        prenomInput.disabled = isAdmin;
+        prenomGroup.classList.toggle('d-none', isAdmin);
+        if (isAdmin) prenomInput.value = '';
+    };
+
+    if (roleSelect) {
+        roleSelect.addEventListener('change', togglePrenomField);
+        togglePrenomField();
+    }
 
     if (loginForm && submitBtn) {
         loginForm.addEventListener('submit', function(e) {

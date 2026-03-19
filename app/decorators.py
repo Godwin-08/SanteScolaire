@@ -7,5 +7,7 @@ def login_required(f):
         if not session.get('logged_in'):
             flash("Veuillez vous connecter pour accéder à cette page.", "warning")
             return redirect(url_for('auth.login'))
+        if session.get('must_change_password'):
+            return redirect(url_for('auth.change_password'))
         return f(*args, **kwargs)
     return decorated_function

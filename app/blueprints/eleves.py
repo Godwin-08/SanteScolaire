@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash
-from db import mysql
-from decorators import login_required
+
+from app.constants import MSG_ACTION_NOT_ALLOWED, RDV_STATUT_PROGRAMME, ROLE_ADMIN, ROLE_SOIGNANT
+from app.db import mysql
+from app.decorators import login_required
 
 eleves_bp = Blueprint('eleves', __name__)
 
@@ -9,7 +11,7 @@ eleves_bp = Blueprint('eleves', __name__)
 @login_required
 def index():
     # L'admin n'a pas accès à la liste des élèves (il a son propre panel de gestion RH)
-    if session.get('user_role') == 'admin':
+    if session.get('user_role') == ROLE_ADMIN:
         return redirect(url_for('admin.panel'))
 
     cur = mysql.connection.cursor()
@@ -52,7 +54,7 @@ def index():
 @login_required
 def dossier(id_eleve):
     # Restriction stricte : L'Admin ne doit pas voir le dossier médical (Confidentialité)
-    if session.get('user_role') not in ['medecin', 'infirmier']:
+    if session.get('user_role') not in ROLE_SOIGNANT:
         flash("L'accès aux dossiers médicaux est réservé au personnel soignant.", "danger")
         return redirect(url_for('admin.panel'))
 
@@ -86,9 +88,9 @@ def dossier(id_eleve):
         SELECT r.*, m.nom_medecin 
         FROM rdv r 
         LEFT JOIN medecin m ON r.id_medecin = m.id_medecin
-        WHERE r.id_eleve = %s AND r.date_rdv >= NOW() AND (r.statut = 'programmé' OR r.statut IS NULL)
+        WHERE r.id_eleve = %s AND r.date_rdv >= NOW() AND (r.statut = %s OR r.statut IS NULL)
         ORDER BY r.date_rdv ASC
-    """, [id_eleve])
+    """, [id_eleve, RDV_STATUT_PROGRAMME])
     rdvs = cur.fetchall()
 
     # 5. Données pour le graphique IMC (Poids / Taille^2)
@@ -116,8 +118,8 @@ def dossier(id_eleve):
 @login_required
 def ajouter_eleve():
     # Sécurité : Seul le personnel soignant peut créer un dossier patient
-    if session.get('user_role') not in ['medecin', 'infirmier']:
-        flash("Action non autorisée.", "danger")
+    if session.get('user_role') not in ROLE_SOIGNANT:
+        flash(MSG_ACTION_NOT_ALLOWED, "danger")
         return redirect(url_for('admin.panel'))
 
     # Insertion du nouvel élève en base
@@ -137,8 +139,8 @@ def ajouter_eleve():
 @eleves_bp.route('/rdv/statut/<int:id_rdv>/<statut>')
 @login_required
 def update_rdv_status(id_rdv, statut):
-    if session.get('user_role') not in ['medecin', 'infirmier']:
-        flash("Action non autorisée.", "danger")
+    if session.get('user_role') not in ROLE_SOIGNANT:
+        flash(MSG_ACTION_NOT_ALLOWED, "danger")
         return redirect(url_for('dashboard.agenda'))
         
     cur = mysql.connection.cursor()

@@ -27,9 +27,14 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">NOM DE FAMILLE</label>
-                            <input type="text" name="nom" class="form-control" value="{{ user.nom }}" required>
-                            <div class="form-text text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Attention : Ce nom est utilisé pour votre connexion.</div>
+                            <label class="form-label small fw-bold text-muted">PRENOM</label>
+                            <input type="text" name="prenom" class="form-control" value="{{ user.prenom or '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">NOM</label>
+                            <input type="text" name="nom" class="form-control" value="{{ user.nom_famille or '' }}" required>
+                            <div class="form-text text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Attention : Ce nom est utilis?? pour votre connexion.</div>
                         </div>
 
                         {% if session.user_role == 'medecin' %}

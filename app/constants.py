@@ -1,0 +1,10 @@
+ROLE_ADMIN = "admin"
+ROLE_MEDECIN = "medecin"
+ROLE_INFIRMIER = "infirmier"
+ROLE_SOIGNANT = {ROLE_MEDECIN, ROLE_INFIRMIER}
+
+RDV_STATUT_PROGRAMME = "programmé"
+RDV_STATUT_FAIT = "fait"
+RDV_STATUT_ANNULE = "annule"
+
+MSG_ACTION_NOT_ALLOWED = "Action non autorisée."

@@ -76,6 +76,9 @@
             </div>
             <form action="{{ url_for('admin.ajouter_personnel') }}" method="POST">
                 <div class="modal-body">
+                    <div class="alert alert-warning border-0 rounded-3 small">
+                        <i class="fas fa-key me-2"></i>Le mot de passe saisi est temporaire. Le personnel devra le changer à la première connexion.
+                    </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">TYPE</label>
                         <select name="type" class="form-select" id="addType" onchange="toggleAddFields(this.value)">
@@ -84,8 +87,22 @@
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label small fw-bold">PRENOM</label>
+                        <input type="text" name="prenom" class="form-control" placeholder="Prenom" required>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label small fw-bold">NOM</label>
                         <input type="text" name="nom" class="form-control" placeholder="Nom de famille" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">MOT DE PASSE</label>
+                        <div class="position-relative">
+                            <input type="password" name="password" id="addPassword" class="form-control pe-5" placeholder="Mot de passe (optionnel)">
+                            <button type="button" class="password-toggle" data-toggle-password data-target="addPassword" aria-pressed="false">
+                                <i class="fas fa-eye"></i><span>Afficher</span>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted">Laisser vide pour generer un mot de passe temporaire (format NOM4-ID-M / NOM4-ID-I).</div>
                     </div>
                     <div id="medecinFields">
                         <div class="mb-3">
@@ -118,8 +135,21 @@
                     <input type="hidden" name="type" id="editType">
                     
                     <div class="mb-3">
+                        <label class="form-label small fw-bold">PRENOM</label>
+                        <input type="text" name="prenom" id="editPrenom" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label small fw-bold">NOM</label>
                         <input type="text" name="nom" id="editNom" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">NOUVEAU MOT DE PASSE</label>
+                        <div class="position-relative">
+                            <input type="password" name="password" id="editPassword" class="form-control pe-5" placeholder="Laisser vide pour ne pas changer">
+                            <button type="button" class="password-toggle" data-toggle-password data-target="editPassword" aria-pressed="false">
+                                <i class="fas fa-eye"></i><span>Afficher</span>
+                            </button>
+                        </div>
                     </div>
                     <div id="editMedecinFields">
                         <div class="mb-3">
@@ -142,16 +172,29 @@
 {% endblock %}
 
 {% block js %}
+<script src="{{ url_for('static', filename='js/password_toggle.js') }}"></script>
 <script>
 function toggleAddFields(val) {
     const fields = document.getElementById('medecinFields');
     val === 'medecin' ? fields.classList.remove('d-none') : fields.classList.add('d-none');
 }
 
+function splitFullName(fullName) {
+    const parts = (fullName || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) {
+        return { prenom: '', nom: '' };
+    }
+    const prenom = parts.shift();
+    const nom = parts.join(' ');
+    return { prenom, nom };
+}
+
 function openEditModal(type, id, nom, specialite, email) {
     document.getElementById('editId').value = id;
     document.getElementById('editType').value = type;
-    document.getElementById('editNom').value = nom;
+    const split = splitFullName(nom);
+    document.getElementById('editPrenom').value = split.prenom;
+    document.getElementById('editNom').value = split.nom;
     
     const fields = document.getElementById('editMedecinFields');
     const specInput = document.getElementById('editSpecialite');

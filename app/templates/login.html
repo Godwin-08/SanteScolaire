@@ -29,9 +29,20 @@
                         <input type="number" name="user_id" class="form-control" id="userId" placeholder="ID" required>
                         <label for="userId">Identifiant (ID)</label>
                     </div>
+                    <div class="form-floating mb-3" id="prenomGroup">
+                        <input type="text" name="prenom" class="form-control" id="userPrenom" placeholder="Prenom" required>
+                        <label for="userPrenom">Prenom</label>
+                    </div>
                     <div class="form-floating mb-4">
                         <input type="text" name="nom" class="form-control" id="userNom" placeholder="Nom" required>
-                        <label for="userNom">Nom de famille</label>
+                        <label for="userNom">Nom</label>
+                    </div>
+                    <div class="form-floating position-relative mb-4">
+                        <input type="password" name="password" class="form-control pe-5" id="userPassword" placeholder="Mot de passe" required>
+                        <label for="userPassword">Mot de passe</label>
+                        <button type="button" class="password-toggle" data-toggle-password data-target="userPassword" aria-pressed="false">
+                            <i class="fas fa-eye"></i><span>Afficher</span>
+                        </button>
                     </div>
                     <button type="submit" class="btn btn-primary w-100 py-3 shadow fw-bold">VÉRIFIER L'ACCÈS</button>
                 </form>
@@ -43,4 +54,5 @@
 
 {% block js %}
 <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+<script src="{{ url_for('static', filename='js/password_toggle.js') }}"></script>
 {% endblock %}

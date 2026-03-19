@@ -163,6 +163,29 @@ body {
     color: var(--text-main) !important;
 }
 
+/* --- Password toggle inside inputs --- */
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+}
+.password-toggle:hover {
+    color: var(--primary);
+}
+.password-toggle:focus {
+    outline: none;
+    box-shadow: none;
+}
+
 /* Gestion de l'autofill (remplissage auto) qui force un fond blanc */
 input:-webkit-autofill,
 input:-webkit-autofill:hover, 

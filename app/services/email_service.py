@@ -1,50 +1,36 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import json
-import os
 
-EMAILS_FILE = 'medecin_emails.json'
+from app.utils import get_emails
 
-def get_emails():
-    """Charge les emails depuis le fichier JSON."""
-    if not os.path.exists(EMAILS_FILE):
-        return {}
-    try:
-        with open(EMAILS_FILE, 'r') as f:
-            return json.load(f)
-    except json.JSONDecodeError:
-        return {}
-
-def save_emails_data(emails):
-    """Sauvegarde les emails dans le fichier JSON."""
-    with open(EMAILS_FILE, 'w') as f:
-        json.dump(emails, f)
 
 def send_rdv_notification(medecin_id, medecin_nom, eleve_nom, date_rdv):
     """Envoie un email de notification au médecin."""
     emails = get_emails()
     medecin_email = emails.get(str(medecin_id))
-    
+
     if not medecin_email:
-        print(f"Notification annulée : Pas d'email pour Dr. {medecin_nom} (ID: {medecin_id})")
+        print(
+            f"Notification annulée : Pas d'email pour Dr. {medecin_nom} (ID: {medecin_id})"
+        )
         return False
 
     # --- CONFIGURATION SMTP (À ADAPTER) ---
     # Exemple pour Gmail (nécessite un mot de passe d'application si 2FA activé)
-    SMTP_SERVER = 'smtp.gmail.com'
+    SMTP_SERVER = "smtp.gmail.com"
     SMTP_PORT = 587
-    SMTP_EMAIL = 'votre_email@gmail.com' 
-    SMTP_PASSWORD = 'votre_mot_de_passe_app'
+    SMTP_EMAIL = "votre_email@gmail.com"
+    SMTP_PASSWORD = "votre_mot_de_passe_app"
 
     try:
         msg = MIMEMultipart()
-        msg['From'] = SMTP_EMAIL
-        msg['To'] = medecin_email
-        msg['Subject'] = f"Nouveau RDV : {eleve_nom}"
+        msg["From"] = SMTP_EMAIL
+        msg["To"] = medecin_email
+        msg["Subject"] = f"Nouveau RDV : {eleve_nom}"
 
         # Formatage de la date (suppression du T)
-        date_fmt = str(date_rdv).replace('T', ' ')
+        date_fmt = str(date_rdv).replace("T", " ")
 
         body = f"""
         Bonjour Dr. {medecin_nom},
@@ -59,11 +45,11 @@ def send_rdv_notification(medecin_id, medecin_nom, eleve_nom, date_rdv):
         Cordialement,
         L'équipe SanteScolaire
         """
-        msg.attach(MIMEText(body, 'plain'))
+        msg.attach(MIMEText(body, "plain"))
 
         # Simulation (pour éviter les erreurs tant que vous n'avez pas mis vos vrais identifiants)
-        if SMTP_EMAIL == 'votre_email@gmail.com':
-            print(f"--- [SIMULATION EMAIL] ---")
+        if SMTP_EMAIL == "votre_email@gmail.com":
+            print("--- [SIMULATION EMAIL] ---")
             print(f"À: {medecin_email}")
             print(f"Sujet: {msg['Subject']}")
             print(f"Corps: \n{body}")

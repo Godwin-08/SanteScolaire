@@ -1,6 +1,15 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash, jsonify
-from db import mysql
-from decorators import login_required
+
+from app.constants import (
+    MSG_ACTION_NOT_ALLOWED,
+    RDV_STATUT_PROGRAMME,
+    ROLE_INFIRMIER,
+    ROLE_MEDECIN,
+    ROLE_SOIGNANT,
+)
+from app.db import mysql
+from app.decorators import login_required
+from app.services.email_service import send_rdv_notification
 
 consultations_bp = Blueprint('consultations', __name__)
 
@@ -8,7 +17,7 @@ consultations_bp = Blueprint('consultations', __name__)
 @consultations_bp.route('/nouvelle_visite/<int:id_eleve>')
 @login_required
 def nouvelle_visite(id_eleve):
-    if session.get('user_role') not in ['medecin', 'infirmier']:
+    if session.get('user_role') not in ROLE_SOIGNANT:
         flash("Accès non autorisé.", "warning")
         return redirect(url_for('eleves.dossier', id_eleve=id_eleve))
         
@@ -31,8 +40,8 @@ def enregistrer_visite():
     role = session.get('user_role')
     user_id = session.get('user_id')
 
-    if role not in ['medecin', 'infirmier']:
-        flash("Action non autorisée.", "danger")
+    if role not in ROLE_SOIGNANT:
+        flash(MSG_ACTION_NOT_ALLOWED, "danger")
         return redirect(url_for('eleves.index'))
 
     id_e = request.form['id_eleve']
@@ -52,16 +61,18 @@ def enregistrer_visite():
                 SELECT COUNT(*) as cnt FROM rdv 
                 WHERE id_medecin = %s 
                 AND date_rdv BETWEEN DATE_SUB(%s, INTERVAL 15 MINUTE) AND DATE_ADD(%s, INTERVAL 15 MINUTE)
-                AND (statut = 'programmé' OR statut IS NULL)
-            """, (id_medecin_rdv, date_rdv, date_rdv))
+                AND (statut = %s OR statut IS NULL)
+            """, (id_medecin_rdv, date_rdv, date_rdv, RDV_STATUT_PROGRAMME))
             
             if cur.fetchone()['cnt'] > 0:
                 flash("Le médecin n'est pas disponible sur ce créneau (RDV existant proche).", "danger")
                 return redirect(url_for('consultations.nouvelle_visite', id_eleve=id_e))
 
             # Si dispo, on insère le RDV
-            cur.execute("INSERT INTO rdv (id_eleve, date_rdv, id_medecin, statut) VALUES (%s, %s, %s, 'programmé')", 
-                       (id_e, date_rdv, id_medecin_rdv))
+            cur.execute(
+                "INSERT INTO rdv (id_eleve, date_rdv, id_medecin, statut) VALUES (%s, %s, %s, %s)",
+                (id_e, date_rdv, id_medecin_rdv, RDV_STATUT_PROGRAMME),
+            )
 
         # --- 2. Insertion de la consultation (Données Vitales) ---
         poids = request.form.get('poids') or None
@@ -70,12 +81,12 @@ def enregistrer_visite():
         tension = request.form.get('tension') or None
         
         # Gestion des IDs selon qui est connecté
-        id_medecin = user_id if role == 'medecin' else None
-        id_infirmier = user_id if role == 'infirmier' else None
+        id_medecin = user_id if role == ROLE_MEDECIN else None
+        id_infirmier = user_id if role == ROLE_INFIRMIER else None
         
         # Observations : Saisie par médecin, ou auto-générée pour infirmier
         observations = request.form.get('observations')
-        if role == 'infirmier':
+        if role == ROLE_INFIRMIER:
             observations = "Triage Infirmier - Prise de constantes"
 
         cur.execute("""
@@ -86,7 +97,7 @@ def enregistrer_visite():
         id_consultation = cur.lastrowid
 
         # --- 3. Prescriptions (Réservé aux Médecins) ---
-        if role == 'medecin':
+        if role == ROLE_MEDECIN:
             # Récupération des listes (tableaux) pour les médicaments
             meds = request.form.getlist('medicament[]')
             dosages = request.form.getlist('dosage[]')
@@ -101,17 +112,16 @@ def enregistrer_visite():
 
         mysql.connection.commit()
         
-        if role == 'infirmier' and date_rdv:
+        if role == ROLE_INFIRMIER and date_rdv:
             # Envoi de l'email de confirmation au médecin
             try:
-                import utils
                 cur.execute("SELECT nom_medecin FROM medecin WHERE id_medecin = %s", [id_medecin_rdv])
                 med_info = cur.fetchone()
                 cur.execute("SELECT nom_eleve, prenom_eleve FROM eleve WHERE id_eleve = %s", [id_e])
                 eleve_info = cur.fetchone()
                 
                 if med_info and eleve_info:
-                    utils.send_rdv_notification(
+                    send_rdv_notification(
                         id_medecin_rdv, med_info['nom_medecin'], 
                         f"{eleve_info['nom_eleve']} {eleve_info['prenom_eleve']}", date_rdv
                     )
@@ -142,8 +152,8 @@ def creneaux_occupes(id_medecin, date_jour):
         FROM rdv 
         WHERE id_medecin = %s 
         AND DATE(date_rdv) = %s 
-        AND (statut = 'programmé' OR statut IS NULL)
-    """, (id_medecin, date_jour))
+        AND (statut = %s OR statut IS NULL)
+    """, (id_medecin, date_jour, RDV_STATUT_PROGRAMME))
     rdvs = cur.fetchall()
     cur.close()
     # Retourne une liste simple : ['09:00', '10:30', ...]
@@ -154,8 +164,8 @@ def creneaux_occupes(id_medecin, date_jour):
 @login_required
 def supprimer_consultation(id_consult):
     # Sécurité : Seul un médecin peut supprimer une consultation
-    if session.get('user_role') != 'medecin':
-        flash("Action non autorisée.", "danger")
+    if session.get('user_role') != ROLE_MEDECIN:
+        flash(MSG_ACTION_NOT_ALLOWED, "danger")
         return redirect(url_for('eleves.index'))
 
     cur = mysql.connection.cursor()

@@ -1,6 +1,15 @@
 from flask import Blueprint, render_template, redirect, session, url_for, request, flash
-from db import mysql
-from decorators import login_required
+
+from app.constants import (
+    RDV_STATUT_ANNULE,
+    RDV_STATUT_FAIT,
+    RDV_STATUT_PROGRAMME,
+    ROLE_ADMIN,
+    ROLE_INFIRMIER,
+    ROLE_MEDECIN,
+)
+from app.db import mysql
+from app.decorators import login_required
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -14,7 +23,7 @@ def dashboard():
     user_id = session.get('user_id')
 
     # --- 0. KPIs (Indicateurs Clés de Performance) ---
-    if role == 'medecin':
+    if role == ROLE_MEDECIN:
         # VUE MÉDECIN : On filtre les stats pour ce médecin uniquement
         
         # Nombre de patients distincts consultés
@@ -36,29 +45,29 @@ def dashboard():
 
     # --- 1. Agenda (Rendez-vous à venir) ---
     rdvs = []
-    if role == 'medecin':
+    if role == ROLE_MEDECIN:
         # Le médecin ne voit que ses propres RDV futurs
         cur.execute("""
             SELECT r.*, e.nom_eleve, e.prenom_eleve, m.nom_medecin
             FROM rdv r 
             JOIN eleve e ON r.id_eleve = e.id_eleve 
             LEFT JOIN medecin m ON r.id_medecin = m.id_medecin
-            WHERE r.date_rdv >= NOW() AND r.id_medecin = %s AND (r.statut = 'programmé' OR r.statut IS NULL)
+            WHERE r.date_rdv >= NOW() AND r.id_medecin = %s AND (r.statut = %s OR r.statut IS NULL)
             ORDER BY r.date_rdv ASC 
             LIMIT 5
-        """, [user_id])
+        """, [user_id, RDV_STATUT_PROGRAMME])
         rdvs = cur.fetchall()
-    elif role == 'infirmier':
+    elif role == ROLE_INFIRMIER:
         # L'infirmier voit tous les RDV pour gérer le flux
         cur.execute("""
             SELECT r.*, e.nom_eleve, e.prenom_eleve, m.nom_medecin
             FROM rdv r 
             JOIN eleve e ON r.id_eleve = e.id_eleve 
             LEFT JOIN medecin m ON r.id_medecin = m.id_medecin
-            WHERE r.date_rdv >= NOW() AND (r.statut = 'programmé' OR r.statut IS NULL)
+            WHERE r.date_rdv >= NOW() AND (r.statut = %s OR r.statut IS NULL)
             ORDER BY r.date_rdv ASC 
             LIMIT 5
-        """)
+        """, [RDV_STATUT_PROGRAMME])
         rdvs = cur.fetchall()
     # L'Admin (else) n'a pas accès à la liste des RDV (rdvs reste vide)
 
@@ -69,7 +78,7 @@ def dashboard():
     pie_subtitle = ""
     pie_info = ""
 
-    if role == 'medecin':
+    if role == ROLE_MEDECIN:
         # Analyse des pathologies : Quels sont les motifs récurrents ?
         pie_title = "Motifs de Consultation"
         pie_subtitle = "Pathologies fréquentes"
@@ -79,7 +88,7 @@ def dashboard():
         pie_values = [d['total'] for d in data]
         if data:
             pie_info = f"Motif principal : <strong class='text-primary'>{data[0]['motif']}</strong> ({data[0]['total']} cas)"
-    elif role == 'admin':
+    elif role == ROLE_ADMIN:
         # VUE ADMIN : Analyse RH Répartition de la charge de travail entre médecins
         pie_title = "Répartition par Médecin"
         pie_subtitle = "Volume de consultations traité"
@@ -100,7 +109,7 @@ def dashboard():
     bar_title = ""
     bar_subtitle = ""
 
-    if role == 'medecin':
+    if role == ROLE_MEDECIN:
         bar_title = "Mon Activité Récente"
         bar_subtitle = "Mes consultations sur 7 jours"
         cur.execute("""
@@ -171,7 +180,7 @@ def agenda():
     """
     params = []
 
-    if role == 'medecin':
+    if role == ROLE_MEDECIN:
         query += " AND r.id_medecin = %s"
         params.append(user_id)
     
@@ -180,8 +189,9 @@ def agenda():
         params.append(selected_classe)
 
     if selected_statut:
-        if selected_statut == 'programmé':
-            query += " AND (r.statut = 'programmé' OR r.statut IS NULL)"
+        if selected_statut == RDV_STATUT_PROGRAMME:
+            query += " AND (r.statut = %s OR r.statut IS NULL)"
+            params.append(RDV_STATUT_PROGRAMME)
         else:
             query += " AND r.statut = %s"
             params.append(selected_statut)
@@ -209,9 +219,9 @@ def agenda():
     # 4. Calcul des statistiques sur les résultats filtrés
     stats = {
         'total': len(rdvs),
-        'programmes': sum(1 for r in rdvs if r['statut'] == 'programmé' or not r['statut']),
-        'faits': sum(1 for r in rdvs if r['statut'] == 'fait'),
-        'annules': sum(1 for r in rdvs if r['statut'] == 'annule')
+        'programmes': sum(1 for r in rdvs if r['statut'] == RDV_STATUT_PROGRAMME or not r['statut']),
+        'faits': sum(1 for r in rdvs if r['statut'] == RDV_STATUT_FAIT),
+        'annules': sum(1 for r in rdvs if r['statut'] == RDV_STATUT_ANNULE)
     }
     
     return render_template('agenda.html', rdvs=rdvs, classes=classes, current_classe=selected_classe, current_statut=selected_statut, current_date_filter=selected_date, stats=stats)
@@ -230,10 +240,10 @@ def annuler_journee():
     cur = mysql.connection.cursor()
     
     # On ne touche que les RDV "programmé" ou NULL (pas ceux déjà faits ou annulés)
-    query = "UPDATE rdv SET statut = 'annule' WHERE DATE(date_rdv) = %s AND (statut = 'programmé' OR statut IS NULL)"
-    params = [date_annulation]
+    query = "UPDATE rdv SET statut = %s WHERE DATE(date_rdv) = %s AND (statut = %s OR statut IS NULL)"
+    params = [RDV_STATUT_ANNULE, date_annulation, RDV_STATUT_PROGRAMME]
 
-    if role == 'medecin':
+    if role == ROLE_MEDECIN:
         # Le médecin ne peut annuler que SES rendez-vous
         query += " AND id_medecin = %s"
         params.append(user_id)
