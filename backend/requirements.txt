@@ -16,7 +16,7 @@ Flask-MySQLdb==2.0.0
 fonttools==4.61.1
 greenlet==3.3.0
 h11==0.16.0
-idna==3.11
+idna==3.15
 itsdangerous==2.2.0
 Jinja2==3.1.6
 kiwisolver==1.4.9
@@ -36,8 +36,8 @@ PySide6_Addons==6.10.1
 PySide6_Essentials==6.10.1
 PySocks==1.7.1
 python-dateutil==2.9.0.post0
-python-dotenv==1.2.1
-requests==2.32.5
+python-dotenv==1.2.2
+requests==2.33.0
 selenium==4.39.0
 shiboken6==6.10.1
 six==1.17.0
@@ -47,7 +47,7 @@ trio==0.32.0
 trio-websocket==0.12.2
 typing_extensions==4.15.0
 tzdata==2025.1
-urllib3==2.6.3
+urllib3==2.7.0
 webdriver-manager==4.0.2
 websocket-client==1.9.0
 Werkzeug==3.1.6
