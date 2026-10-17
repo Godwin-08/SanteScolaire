@@ -1,205 +1,393 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="container py-5 animate__animated animate__fadeIn">
-    <div class="d-flex justify-content-between align-items-center mb-5">
-        <h2 class="fw-bold text-dark">Administration du Personnel</h2>
-        <div>
-            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger me-2 shadow-sm">
-                <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
-            </a>
-            <button class="btn btn-primary btn-pro shadow" data-bs-toggle="modal" data-bs-target="#modalAddStaff">
-                <i class="fas fa-user-plus me-2"></i>Ajouter Personnel
-            </button>
-        </div>
-    </div>
+{% block title %}Tableau de bord — Statistiques Globales{% endblock %}
 
-    <div class="row g-4">
-        <!-- Liste Médecins -->
-        <div class="col-md-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white border-0 fw-bold py-3">Liste des Médecins</div>
-                <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        {% for m in medecins %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="d-block fw-bold">Dr. {{ m.prenom_medecin }} {{ m.nom_medecin }}</span>
-                                <small class="text-muted">{{ m.specialite }} {% if m.email %} | <i class="fas fa-envelope ms-1"></i> {{ m.email }}{% endif %}</small>
-                            </div>
-                            <div>
-                                <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="openEditModal('medecin', '{{ m.id_medecin }}', '{{ m.prenom_medecin }}', '{{ m.nom_medecin }}', '{{ m.specialite }}', '{{ m.email or '' }}')"><i class="fas fa-edit"></i></button>
-                                <span class="badge bg-light text-dark me-2">ID: {{ m.id_medecin }}</span>
-                                <form action="{{ url_for('admin.supprimer_personnel', type_perso='medecin', id_perso=m.id_medecin) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce médecin ? Cette action est irréversible.');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-trash-alt"></i></button>
-                                </form>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-        </div>
+{% block page_title %}Tableau de bord{% endblock %}
 
-        <!-- Liste Infirmiers -->
-        <div class="col-md-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white border-0 fw-bold py-3">Liste des Infirmiers</div>
-                <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        {% for i in infirmiers %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>{{ i.prenom_infirmier }} {{ i.nom_infirmier }}</span>
-                            <div>
-                                <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="openEditModal('infirmier', '{{ i.id_infirmier }}', '{{ i.prenom_infirmier }}', '{{ i.nom_infirmier }}', '', '')"><i class="fas fa-edit"></i></button>
-                                <span class="badge bg-light text-dark me-2">ID: {{ i.id_infirmier }}</span>
-                                <form action="{{ url_for('admin.supprimer_personnel', type_perso='infirmier', id_perso=i.id_infirmier) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet infirmier ? Cette action est irréversible.');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-trash-alt"></i></button>
-                                </form>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Ajout -->
-<div class="modal fade" id="modalAddStaff" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold">Nouveau Membre</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ url_for('admin.ajouter_personnel') }}" method="POST">
-                <div class="modal-body">
-                    <div class="alert alert-warning border-0 rounded-3 small">
-                        <i class="fas fa-key me-2"></i>Le mot de passe saisi est temporaire. Le personnel devra le changer à la première connexion.
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">TYPE</label>
-                        <select name="type" class="form-select" id="addType" onchange="toggleAddFields(this.value)">
-                            <option value="medecin">Médecin</option>
-                            <option value="infirmier">Infirmier</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">PRENOM</label>
-                        <input type="text" name="prenom" class="form-control" placeholder="Prenom" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">NOM</label>
-                        <input type="text" name="nom" class="form-control" placeholder="Nom de famille" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">MOT DE PASSE</label>
-                        <div class="position-relative">
-                            <input type="password" name="password" id="addPassword" class="form-control pe-5" placeholder="Mot de passe (optionnel)">
-                            <button type="button" class="password-toggle" data-toggle-password data-target="addPassword" aria-pressed="false">
-                                <i class="fas fa-eye"></i><span>Afficher</span>
-                            </button>
-                        </div>
-                        <div class="form-text text-muted">Laisser vide pour laisser l'utilisateur activer son compte et definir son mot de passe (/activate).</div>
-                    </div>
-                    <div id="medecinFields">
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">SPÉCIALITÉ</label>
-                            <input type="text" name="specialite" class="form-control" placeholder="Ex: Pédiatre, Généraliste...">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">EMAIL</label>
-                            <input type="email" name="email" class="form-control" placeholder="email@exemple.com">
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0"><button type="submit" class="btn btn-primary">Enregistrer</button></div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Modification -->
-<div class="modal fade" id="modalEditStaff" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold">Modifier Personnel</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ url_for('admin.modifier_personnel') }}" method="POST">
-                <div class="modal-body">
-                    <input type="hidden" name="id" id="editId">
-                    <input type="hidden" name="type" id="editType">
-                    
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">PRENOM</label>
-                        <input type="text" name="prenom" id="editPrenom" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">NOM</label>
-                        <input type="text" name="nom" id="editNom" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">NOUVEAU MOT DE PASSE</label>
-                        <div class="position-relative">
-                            <input type="password" name="password" id="editPassword" class="form-control pe-5" placeholder="Laisser vide pour ne pas changer">
-                            <button type="button" class="password-toggle" data-toggle-password data-target="editPassword" aria-pressed="false">
-                                <i class="fas fa-eye"></i><span>Afficher</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="editMedecinFields">
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">SPÉCIALITÉ</label>
-                            <input type="text" name="specialite" id="editSpecialite" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">EMAIL</label>
-                            <input type="email" name="email" id="editEmail" class="form-control">
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
-                </div>
-            </form>
-        </div>
+{% block topbar_actions %}
+<div class="d-flex align-items-center gap-2">
+    <!-- Dropdown Exportation -->
+    <div class="dropdown">
+        <button class="btn btn-sm btn-white border shadow-xs rounded-pill px-3 dropdown-toggle text-secondary fw-semibold" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.8rem;">
+            <i class="fas fa-file-export text-primary me-1"></i> Exporter
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3" style="font-size: 0.82rem;">
+            <li><h6 class="dropdown-header text-uppercase" style="font-size: 0.65rem;">Formats disponibles</h6></li>
+            <li><a class="dropdown-item py-2" href="{{ url_for('admin.export_data', export_type='csv') }}"><i class="fas fa-file-csv text-success me-2"></i>Export CSV</a></li>
+            <li><a class="dropdown-item py-2" href="{{ url_for('admin.export_data', export_type='excel') }}"><i class="fas fa-file-excel text-emerald me-2"></i>Export Excel</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item py-2" href="{{ url_for('admin.export_data', export_type='pdf') }}" target="_blank"><i class="fas fa-file-pdf text-danger me-2"></i>Rapport PDF</a></li>
+        </ul>
     </div>
 </div>
 {% endblock %}
 
-{% block js %}
-<script src="{{ url_for('static', filename='js/password_toggle.js') }}"></script>
-<script>
-function toggleAddFields(val) {
-    const fields = document.getElementById('medecinFields');
-    val === 'medecin' ? fields.classList.remove('d-none') : fields.classList.add('d-none');
-}
+{% block content %}
+<div class="w-100">
 
-function openEditModal(type, id, prenom, nom, specialite, email) {
-    document.getElementById('editId').value = id;
-    document.getElementById('editType').value = type;
-    document.getElementById('editPrenom').value = prenom || '';
-    document.getElementById('editNom').value = nom || '';
+    <!-- ==================== BARRE DE FILTRAGE DES STATISTIQUES ==================== -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-3">
+        <form method="GET" action="{{ url_for('admin.panel') }}" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small fw-semibold text-uppercase text-nowrap"><i class="fas fa-calendar-days text-primary me-1"></i>Année :</span>
+                    <select name="annee" class="form-select bg-light border-0" onchange="this.form.submit()">
+                        <option value="all" {% if annee_filter == 'all' %}selected{% endif %}>Toutes (Comparatif)</option>
+                        {% for yr in annees_disponibles %}
+                        <option value="{{ yr }}" {% if annee_filter == yr|string %}selected{% endif %}>Année {{ yr }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small fw-semibold text-uppercase text-nowrap"><i class="fas fa-clock text-primary me-1"></i>Période :</span>
+                    <select name="periode" class="form-select bg-light border-0" onchange="this.form.submit()">
+                        <option value="all" {% if periode_filter == 'all' %}selected{% endif %}>Toute la période</option>
+                        <option value="today" {% if periode_filter == 'today' %}selected{% endif %}>Aujourd'hui</option>
+                        <option value="week" {% if periode_filter == 'week' %}selected{% endif %}>Ces 7 derniers jours</option>
+                        <option value="month" {% if periode_filter == 'month' %}selected{% endif %}>Ces 30 derniers jours</option>
+                        <option value="year" {% if periode_filter == 'year' %}selected{% endif %}>Cette année scolaire</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small fw-semibold text-uppercase text-nowrap"><i class="fas fa-school text-primary me-1"></i>Classe :</span>
+                    <select name="classe" class="form-select bg-light border-0" onchange="this.form.submit()">
+                        <option value="all" {% if classe_filter == 'all' %}selected{% endif %}>Toutes les classes</option>
+                        {% for c in toutes_classes %}
+                        <option value="{{ c }}" {% if classe_filter == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3 d-flex gap-1 justify-content-end">
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 w-100"><i class="fas fa-filter me-1"></i>Filtrer</button>
+                {% if annee_filter != 'all' or periode_filter != 'all' or classe_filter != 'all' %}
+                <a href="{{ url_for('admin.panel') }}" class="btn btn-light btn-sm rounded-pill px-3" title="Réinitialiser les filtres">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- ==================== 1. LES 4 CHIFFRES CLÉS ==================== -->
+    <div class="row g-3 mb-4">
+        
+        <!-- KPI 1 : Élèves -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted fw-bold text-uppercase d-block" style="font-size: 0.72rem; letter-spacing: 0.05em;">Nombre d'élèves</span>
+                        <h3 class="fw-bold text-dark mt-1 mb-0 font-monospace">{{ total_eleves }}</h3>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-user-graduate fs-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-2 border-top">
+                    <small class="text-muted"><i class="fas fa-check-circle text-success me-1"></i>Inscrits dans l'établissement</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 2 : Visites médicales -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted fw-bold text-uppercase d-block" style="font-size: 0.72rem; letter-spacing: 0.05em;">Visites médicales</span>
+                        <h3 class="fw-bold text-dark mt-1 mb-0 font-monospace">{{ total_consultations }}</h3>
+                    </div>
+                    <div class="rounded-circle p-3 bg-info bg-opacity-10 text-info">
+                        <i class="fas fa-stethoscope fs-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-2 border-top">
+                    <small class="text-muted"><i class="fas fa-calendar-check text-info me-1"></i>{{ total_rdv }} rendez-vous enregistrés</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 3 : Élèves sous protocole (PAI) -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted fw-bold text-uppercase d-block" style="font-size: 0.72rem; letter-spacing: 0.05em;">Élèves sous protocole (PAI)</span>
+                        <h3 class="fw-bold text-danger mt-1 mb-0 font-monospace">{{ eleves_avec_pai }}</h3>
+                    </div>
+                    <div class="rounded-circle p-3 bg-danger bg-opacity-10 text-danger">
+                        <i class="fas fa-shield-heart fs-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-2 border-top">
+                    <small class="text-danger fw-semibold"><i class="fas fa-triangle-exclamation me-1"></i>Allergies / Asthme / Suivi</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 4 : Médicaments en alerte -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 gtm-interactive-row" 
+                 onclick="window.location.href='{{ url_for('admin.pharmacie') }}'"
+                 style="cursor: pointer;"
+                 title="Cliquer pour ouvrir la pharmacie">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted fw-bold text-uppercase d-block" style="font-size: 0.72rem; letter-spacing: 0.05em;">Médicaments en alerte</span>
+                        <h3 class="fw-bold text-warning mt-1 mb-0 font-monospace">{{ stocks_critiques }}</h3>
+                    </div>
+                    <div class="rounded-circle p-3 bg-warning bg-opacity-10 text-warning">
+                        <i class="fas fa-pills fs-5"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-2 border-top">
+                    <small class="text-warning fw-semibold"><i class="fas fa-arrow-right me-1"></i>Stock bas &middot; Commander &rarr;</small>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==================== 2. LES 4 GRAPHIQUES DÉCISIONNELS ==================== -->
+    <div class="row g-4 mb-4">
+        
+        <!-- Graphique 1 : Évolution Mensuelle des Visites (Multi-années) -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-1"><i class="fas fa-chart-line text-primary me-2"></i>Évolution mensuelle des visites</h6>
+                        <small class="text-muted">
+                            {% if annee_filter == 'all' %}
+                            Comparatif multi-annuel (Janvier à Décembre)
+                            {% else %}
+                            Janvier à Décembre pour l'année {{ annee_filter }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 flex-wrap justify-content-end">
+                        {% for ds in chart_datasets %}
+                        <span class="badge rounded-pill px-2 py-1" style="background-color: {{ ds.borderColor }}18; color: {{ ds.borderColor }}; font-size: 0.72rem; border: 1px solid {{ ds.borderColor }}30;">
+                            <span class="d-inline-block rounded-circle me-1" style="width: 7px; height: 7px; background-color: {{ ds.borderColor }};"></span>
+                            {{ ds.annee }}: <strong>{{ ds.total }}</strong>
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div style="height: 270px; position: relative;">
+                    <canvas id="chartEvolutionMois"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphique 2 : Visites par Classe (Niveaux scolaires) -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-1"><i class="fas fa-school text-primary me-2"></i>Fréquentation par classe</h6>
+                        <small class="text-muted">Classes avec le plus grand nombre de passages</small>
+                    </div>
+                    <span class="badge bg-info bg-opacity-10 text-info rounded-pill px-3 py-1">Top classes</span>
+                </div>
+                <div style="height: 270px; position: relative;">
+                    <canvas id="chartParClasse"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Rangée 2 de graphiques -->
+    <div class="row g-4 mb-4">
+        
+        <!-- Graphique 3 : Motifs fréquents de consultation -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-1"><i class="fas fa-clipboard-list text-primary me-2"></i>Raisons des visites fréquentes</h6>
+                        <small class="text-muted">Principaux symptômes et motifs déclarés</small>
+                    </div>
+                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1">Fréquence</span>
+                </div>
+                <div style="height: 270px; position: relative;">
+                    <canvas id="chartMotifs"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphique 4 : Répartition des soignants (Médecins & Spécialités) -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-1"><i class="fas fa-user-doctor text-primary me-2"></i>Médecins par spécialité</h6>
+                        <small class="text-muted">Effectif soignant affecté par discipline</small>
+                    </div>
+                    <a href="{{ url_for('admin.liste_specialites') }}" class="btn btn-sm btn-light rounded-pill px-3 text-secondary" style="font-size: 0.75rem;">
+                        Gérer &rarr;
+                    </a>
+                </div>
+                <div style="height: 270px; position: relative;">
+                    <canvas id="chartSpe"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
     
-    const fields = document.getElementById('editMedecinFields');
-    const specInput = document.getElementById('editSpecialite');
-    const emailInput = document.getElementById('editEmail');
-    
-    if (type === 'medecin') {
-        fields.classList.remove('d-none');
-        specInput.value = specialite;
-        emailInput.value = email;
-    } else {
-        fields.classList.add('d-none');
-        specInput.value = '';
-        emailInput.value = '';
+    // 1. Évolution mensuelle (Courbes multi-annuelles ou annuelle)
+    const ctxMois = document.getElementById('chartEvolutionMois');
+    if (ctxMois) {
+        new Chart(ctxMois, {
+            type: 'line',
+            data: {
+                labels: [{% for m in mois_labels %}'{{ m }}',{% endfor %}],
+                datasets: [
+                    {% for ds in chart_datasets %}
+                    {
+                        label: '{{ ds.label }}',
+                        data: {{ ds.data | tojson }},
+                        borderColor: '{{ ds.borderColor }}',
+                        backgroundColor: '{{ ds.backgroundColor }}',
+                        fill: {{ 'true' if chart_datasets|length == 1 else 'false' }},
+                        tension: 0.35,
+                        borderWidth: 2.8,
+                        pointBackgroundColor: '{{ ds.borderColor }}',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: {{ 'true' if chart_datasets|length > 1 else 'false' }},
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            font: { size: 11, weight: '600' }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' ' + context.dataset.label.split(' (')[0] + ' : ' + context.parsed.y + ' visites';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 10 }
+                    }
+                }
+            }
+        });
     }
-    
-    new bootstrap.Modal(document.getElementById('modalEditStaff')).show();
-}
+
+    // 2. Visites par classe (Barres verticales)
+    const ctxClasse = document.getElementById('chartParClasse');
+    if (ctxClasse) {
+        new Chart(ctxClasse, {
+            type: 'bar',
+            data: {
+                labels: [{% for c in classe_labels %}'{{ c }}',{% endfor %}],
+                datasets: [{
+                    label: 'Passages',
+                    data: [{% for n in classe_counts %}{{ n }},{% endfor %}],
+                    backgroundColor: '#0ea5e9',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+    // 3. Motifs fréquents (Barres horizontales)
+    const ctxMotifs = document.getElementById('chartMotifs');
+    if (ctxMotifs) {
+        new Chart(ctxMotifs, {
+            type: 'bar',
+            data: {
+                labels: [{% for m in motif_labels %}'{{ m }}',{% endfor %}],
+                datasets: [{
+                    label: 'Cas',
+                    data: [{% for n in motif_counts %}{{ n }},{% endfor %}],
+                    backgroundColor: '#f59e0b',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+    // 4. Spécialités (Barres)
+    const ctxSpe = document.getElementById('chartSpe');
+    if (ctxSpe) {
+        new Chart(ctxSpe, {
+            type: 'bar',
+            data: {
+                labels: [{% for s in specialites %}'{{ s.nom_specialite }}',{% endfor %}],
+                datasets: [{
+                    label: 'Médecins',
+                    data: [{% for s in specialites %}{{ s.nb_medecins }},{% endfor %}],
+                    backgroundColor: '#10ac84',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+});
 </script>
 {% endblock %}

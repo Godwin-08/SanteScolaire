@@ -2,61 +2,424 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}SanteScolaire{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SanteScolaire — Système Hospitalier & Santé Scolaire{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Bloc pour CSS spécifique à chaque page -->
+    
+    <style>[x-cloak] { display: none !important; }</style>
+    <!-- Alpine.js pour la réactivité fluide GTM -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
+    
     {% block css %}{% endblock %}
 </head>
-<body>
-    <!-- Barre de navigation principale -->
-    <nav class="navbar navbar-expand-lg navbar-light sticky-top mb-5">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('admin.panel') if session.user_role == 'admin' else (url_for('dashboard.dashboard') if session.logged_in else url_for('home')) }}">
-                <div class="brand-logo"><i class="fas fa-heart-pulse"></i></div>
-                SanteScolaire
-            </a>
-            {% if session.logged_in %}
-            <!-- Menu utilisateur connecté -->
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item me-3 small">
-                        <a href="{{ url_for('profile.mon_profil') }}" class="nav-link"><i class="fas fa-user-circle me-1"></i> {{ session.username }}</a>
-                    </li>
-                    {% if session.user_role == 'admin' %}
-                    <li class="nav-item"><a class="nav-link text-warning" href="{{ url_for('admin.panel') }}"><i class="fas fa-cog"></i> Admin</a></li>
-                    {% endif %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard.dashboard') }}">Stats</a></li>
-                    <li class="nav-item"><a class="btn btn-sm btn-outline-danger ms-2" href="{{ url_for('auth.logout') }}">Déconnexion</a></li>
-                </ul>
-            </div>
-            {% endif %}
-        </div>
-    </nav>
+<body class="bg-slate-50 font-sans" x-data="{ sidebarMobile: false }">
 
-    <div class="container">
-        <!-- Gestion des messages Flash (Succès/Erreur) -->
+    {% if session.logged_in %}
+    <!-- ==========================================================================
+         APPLICATION SHELL PLEIN ÉCRAN (GTM MEDICAL WORKSTATION)
+         ========================================================================== -->
+    <div class="app-shell">
+
+        <!-- ============ SIDEBAR SOMBRE FIXE (260px / #0F172A) ============ -->
+        <aside class="app-sidebar">
+            
+            <!-- Logo & Identité Clinique -->
+            <div class="app-sidebar-header">
+                <a href="{{ url_for('admin.panel') if session.user_role == 'admin' else url_for('dashboard.dashboard') }}" class="app-sidebar-brand">
+                    <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #10ac84 0%, #0d9488 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(16, 172, 132, 0.25);">
+                        <i class="fas fa-heart-pulse text-white fs-6"></i>
+                    </div>
+                    <div>
+                        <span class="text-dark fw-bold" style="font-size: 1.05rem; letter-spacing: -0.4px;">Sante<span style="color: #10ac84;">Scolaire</span></span>
+                        <span class="d-block text-muted" style="font-size: 0.62rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;">Santé & Médecine Scolaire</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Navigation Structurée -->
+            <nav class="app-sidebar-nav">
+                
+                {% if session.user_role == 'admin' %}
+                <!-- Menu Administrateur : Strict respect du secret médical (Données agrégées & Gestion RH/Pharmacie) -->
+                <div class="sidebar-category-title">Supervision & Stats</div>
+                <a href="{{ url_for('admin.panel') }}" class="sidebar-link {% if request.endpoint == 'admin.panel' %}active{% endif %}">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Tableau de bord</span>
+                </a>
+
+                <div class="sidebar-category-title mt-3">Équipe soignante</div>
+                <a href="{{ url_for('admin.liste_personnel') }}" class="sidebar-link {% if request.endpoint == 'admin.liste_personnel' %}active{% endif %}">
+                    <i class="fas fa-user-doctor"></i>
+                    <span>Médecins & Infirmiers</span>
+                </a>
+                <a href="{{ url_for('admin.liste_specialites') }}" class="sidebar-link {% if request.endpoint == 'admin.liste_specialites' %}active{% endif %}">
+                    <i class="fas fa-hospital"></i>
+                    <span>Spécialités</span>
+                </a>
+
+                <div class="sidebar-category-title mt-3">Gestion de l'hôpital</div>
+                <a href="{{ url_for('admin.pharmacie') }}" class="sidebar-link {% if request.endpoint == 'admin.pharmacie' %}active{% endif %}">
+                    <i class="fas fa-pills"></i>
+                    <span>Médicaments & Stocks</span>
+                </a>
+                <a href="{{ url_for('admin.journal_audit') }}" class="sidebar-link {% if request.endpoint == 'admin.journal_audit' %}active{% endif %}">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Historique des actions</span>
+                </a>
+
+                {% else %}
+                <!-- Menu Soignants (Médecins / Infirmiers) : Simple & Direct -->
+                <div class="sidebar-category-title">Activités du jour</div>
+                <a href="{{ url_for('dashboard.dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard.dashboard' %}active{% endif %}">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Accueil</span>
+                </a>
+                <a href="{{ url_for('dashboard.agenda') }}" class="sidebar-link {% if request.endpoint == 'dashboard.agenda' %}active{% endif %}">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Rendez-vous du jour</span>
+                </a>
+
+                <div class="sidebar-category-title mt-3">Patients</div>
+                <a href="{{ url_for('eleves.index') }}" class="sidebar-link {% if request.endpoint in ['eleves.index', 'eleves.dossier'] %}active{% endif %}">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Élèves &amp; Dossiers</span>
+                </a>
+
+                {% if session.user_role == 'infirmier' %}
+                <div class="sidebar-category-title mt-3">Infirmerie</div>
+                <a href="{{ url_for('dashboard.pharmacie') }}" class="sidebar-link {% if request.endpoint in ['dashboard.pharmacie'] %}active{% endif %}">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <span>Pharmacie &amp; Stocks</span>
+                    {% if bell_alerts and bell_alerts.pharmacie_rupture_count > 0 %}
+                    <span class="badge bg-danger rounded-pill ms-auto" style="font-size: 0.65rem;">{{ bell_alerts.pharmacie_rupture_count }}</span>
+                    {% endif %}
+                </a>
+                {% endif %}
+                {% endif %}
+
+            </nav>
+
+            <!-- Pied de Sidebar : Statut Système & Version -->
+            <div class="app-sidebar-footer text-center py-3">
+                <span class="text-secondary opacity-50" style="font-size: 0.72rem; letter-spacing: 0.03em;">
+                    <i class="fas fa-shield-heart text-primary me-1 opacity-75"></i>SanteScolaire Pro
+                </span>
+            </div>
+
+        </aside>
+
+        <!-- ============ ZONE PRINCIPALE FLUIDE (PLEIN ÉCRAN) ============ -->
+        <div class="app-main">
+            
+            <!-- HEADER APP (64px / Titre / Breadcrumb / Outils / Profil) -->
+            <header class="app-topbar">
+                
+                <!-- Gauche : Breadcrumb & Titre de la Vue -->
+                <div class="d-flex align-items-center gap-3">
+                    <div>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0 py-0 text-muted" style="font-size: 0.73rem; font-weight: 500;">
+                                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.dashboard') if session.user_role != 'admin' else url_for('admin.panel') }}" class="text-decoration-none text-muted">SanteScolaire</a></li>
+                                {% block breadcrumb %}
+                                <li class="breadcrumb-item active text-dark fw-medium" aria-current="page">
+                                    {% if session.user_role == 'admin' %}Supervision Hospitalière
+                                    {% elif session.user_role == 'medecin' %}Espace Consultation
+                                    {% else %}Poste Infirmerie{% endif %}
+                                </li>
+                                {% endblock %}
+                            </ol>
+                        </nav>
+                        <h1 class="h6 fw-bold text-dark mb-0 mt-0.5" style="letter-spacing: -0.3px; font-size: 1.05rem;">
+                            {% block page_title %}Tableau de Bord &amp; Pilotage{% endblock %}
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- Droite : Actions Contextuelles, Cloche de Notifications, Profil -->
+                <div class="d-flex align-items-center gap-2">
+                    {% block topbar_actions %}{% endblock %}
+
+                    <!-- Cloche de Notifications Décisionnelles -->
+                    <div class="dropdown">
+                        <button class="gtm-bell-btn rounded-circle shadow-xs" type="button" id="bellBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Alertes Cliniques &amp; Ruptures">
+                            <i class="far fa-bell text-secondary"></i>
+                            {% if bell_alerts and bell_alerts.count > 0 %}
+                            <span class="gtm-bell-badge">{{ bell_alerts.count }}</span>
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end gtm-dropdown-menu shadow-lg border-0 p-0" style="width: 320px;" aria-labelledby="bellBtn">
+
+                            {% if bell_alerts and bell_alerts.role == 'medecin' %}
+                            {# ======= VUE MÉDECIN : alertes cliniques ======= #}
+                            <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-light rounded-top-3">
+                                <span class="fw-bold text-dark small"><i class="fas fa-stethoscope text-primary me-1"></i> Alertes Cliniques</span>
+                                {% if bell_alerts.count > 0 %}
+                                <span class="badge bg-danger text-white rounded-pill" style="font-size: 0.65rem;">{{ bell_alerts.count }} alerte{{ 's' if bell_alerts.count > 1 }}</span>
+                                {% else %}
+                                <span class="badge bg-success text-white rounded-pill" style="font-size: 0.65rem;">Tout est bon</span>
+                                {% endif %}
+                            </div>
+                            <div class="p-2" style="max-height: 260px; overflow-y: auto;">
+
+                                {% if bell_alerts.rdv_programme_count > 0 %}
+                                <a href="{{ url_for('dashboard.agenda') }}" class="text-decoration-none">
+                                <div class="p-2 rounded-2 mb-1 border-start border-3 border-primary bg-light small">
+                                    <strong class="text-primary d-block" style="font-size: 0.75rem;">
+                                        <i class="fas fa-calendar-check me-1"></i>
+                                        {{ bell_alerts.rdv_programme_count }} RDV à traiter aujourd'hui
+                                    </strong>
+                                    <span class="text-secondary" style="font-size: 0.72rem;">
+                                        {{ bell_alerts.rdv_fait_count }} déjà traité{{ 's' if bell_alerts.rdv_fait_count > 1 }} · {{ bell_alerts.rdv_programme_count }} en attente
+                                    </span>
+                                </div>
+                                </a>
+                                {% elif bell_alerts.rdv_fait_count > 0 %}
+                                <div class="p-2 rounded-2 mb-1 border-start border-3 border-success bg-light small">
+                                    <strong class="text-success d-block" style="font-size: 0.75rem;">
+                                        <i class="fas fa-check-circle me-1"></i>Agenda du jour terminé
+                                    </strong>
+                                    <span class="text-secondary" style="font-size: 0.72rem;">{{ bell_alerts.rdv_fait_count }} consultation{{ 's' if bell_alerts.rdv_fait_count > 1 }} effectuée{{ 's' if bell_alerts.rdv_fait_count > 1 }}</span>
+                                </div>
+                                {% endif %}
+
+                                {% for p in bell_alerts.pai_patients %}
+                                <a href="{{ url_for('eleves.dossier', id_eleve=p.id_eleve) }}" class="text-decoration-none">
+                                <div class="p-2 rounded-2 mb-1 border-start border-3 {{ 'border-danger' if p.has_pai else 'border-warning' }} bg-light small">
+                                    <strong class="{{ 'text-danger' if p.has_pai else 'text-warning' }} d-block" style="font-size: 0.75rem;">
+                                        <i class="fas fa-triangle-exclamation me-1"></i>
+                                        {{ p.prenom_eleve }} {{ p.nom_eleve }}
+                                        {% if p.has_pai %}<span class="badge bg-danger ms-1" style="font-size: 0.6rem;">PAI</span>{% endif %}
+                                    </strong>
+                                    <span class="text-secondary" style="font-size: 0.72rem;">
+                                        {% if p.has_pai %}Protocole PAI actif — vigilance requise
+                                        {% else %}Antécédent critique dans le dossier{% endif %}
+                                    </span>
+                                </div>
+                                </a>
+                                {% endfor %}
+
+                                {% if bell_alerts.count == 0 and bell_alerts.rdv_fait_count == 0 %}
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-check-circle fa-2x text-success mb-2 d-block"></i>
+                                    <span style="font-size: 0.78rem;">Aucun RDV prévu aujourd'hui</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="p-2 border-top text-center bg-light rounded-bottom-3">
+                                <a href="{{ url_for('dashboard.agenda') }}" class="small text-primary text-decoration-none fw-semibold" style="font-size: 0.75rem;">
+                                    Voir l'agenda du jour &rarr;
+                                </a>
+                            </div>
+
+                            {% else %}
+                            {# ======= VUE ADMIN / INFIRMIER : alertes pharmacie ======= #}
+                            <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-light rounded-top-3">
+                                <span class="fw-bold text-dark small"><i class="fas fa-pills text-primary me-1"></i> Alertes Pharmacie</span>
+                                {% if bell_alerts and bell_alerts.count > 0 %}
+                                <span class="badge bg-danger text-white rounded-pill" style="font-size: 0.65rem;">{{ bell_alerts.count }} critique{{ 's' if bell_alerts.count > 1 }}</span>
+                                {% else %}
+                                <span class="badge bg-success text-white rounded-pill" style="font-size: 0.65rem;">Stocks OK</span>
+                                {% endif %}
+                            </div>
+                            <div class="p-2" style="max-height: 240px; overflow-y: auto;">
+                                {% if bell_alerts and bell_alerts.stocks_critiques %}
+                                    {% for s in bell_alerts.stocks_critiques %}
+                                    <div class="p-2 rounded-2 mb-1 border-start border-3 {{ 'border-danger' if s.quantite_stock == 0 else 'border-warning' }} bg-light small">
+                                        <strong class="{{ 'text-danger' if s.quantite_stock == 0 else 'text-warning' }} d-block" style="font-size: 0.75rem;">
+                                            <i class="fas fa-capsules me-1"></i>{{ s.nom_medicament }}
+                                        </strong>
+                                        <span class="text-secondary" style="font-size: 0.72rem;">
+                                            {{ s.quantite_stock }} restant{{ 's' if s.quantite_stock > 1 }} (seuil : {{ s.seuil_alerte }})
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-check-circle fa-2x text-success mb-2 d-block"></i>
+                                    <span style="font-size: 0.78rem;">Tous les stocks sont confortables</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="p-2 border-top text-center bg-light rounded-bottom-3">
+                                <a href="{{ url_for('admin.pharmacie') if session.user_role == 'admin' else url_for('dashboard.dashboard') }}" class="small text-primary text-decoration-none fw-semibold" style="font-size: 0.75rem;">
+                                    Gérer les stocks &rarr;
+                                </a>
+                            </div>
+                            {% endif %}
+
+                        </div>
+                    </div>
+
+                    <!-- Menu Profil Déroulant -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-white border rounded-pill px-3 dropdown-toggle text-secondary fw-semibold d-flex align-items-center gap-2 shadow-xs" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 38px; font-size: 0.82rem;">
+                            <div class="avatar-circle bg-primary bg-opacity-10 text-primary fw-bold" style="width: 24px; height: 24px; font-size: 0.75rem; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                {{ (session.get('username') or session.get('user_nom') or 'U')[0]|upper }}
+                            </div>
+                            <span class="d-none d-sm-inline">{{ session.get('username') or session.get('user_nom') or 'Utilisateur' }}</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end gtm-dropdown-menu shadow-lg border-0" style="font-size: 0.82rem; min-width: 190px;">
+                            <li class="px-3 py-2 border-bottom">
+                                <strong class="d-block text-dark">{{ session.get('username') or session.get('user_nom') or 'Utilisateur' }}</strong>
+                                <small class="text-muted text-capitalize">{{ session.get('user_role', 'Personnel') }}</small>
+                            </li>
+                            <li><a class="dropdown-item py-2 mt-1" href="{{ url_for('profile.mon_profil') }}"><i class="fas fa-user-gear me-2 text-primary"></i>Mon Profil</a></li>
+                            <li><a class="dropdown-item py-2" href="{{ url_for('auth.change_password') }}"><i class="fas fa-key me-2 text-secondary"></i>Sécurité Mot de Passe</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item py-2 text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-power-off me-2"></i>Déconnexion</a></li>
+                        </ul>
+                    </div>
+
+                </div>
+            </header>
+
+            <!-- CONTENU DÉFILABLE EN PLEIN ÉCRAN FLUIDE (100% Largeur) -->
+            <main class="app-scroll-content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+
+    </div>
+
+    <!-- ============ CONTENEUR GLOBAL POUR TOASTS FLOTTANTS (GTM-STYLE) ============ -->
+    <div class="gtm-toast-container" id="toastContainer">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+              <div class="gtm-toast gtm-toast-{{ category if category != 'danger' else 'danger' }}" id="toast-{{ loop.index }}">
+                <div class="fs-6 mt-0.5">
+                    {% if category == 'success' %}
+                        <i class="fas fa-check-circle text-success"></i>
+                    {% elif category == 'danger' %}
+                        <i class="fas fa-triangle-exclamation text-danger"></i>
+                    {% elif category == 'warning' %}
+                        <i class="fas fa-exclamation-circle text-warning"></i>
+                    {% else %}
+                        <i class="fas fa-info-circle text-primary"></i>
+                    {% endif %}
+                </div>
+                <div class="flex-grow-1">
+                    {{ message }}
+                </div>
+                <button type="button" class="btn-close ms-2" onclick="document.getElementById('toast-{{ loop.index }}').remove()" style="font-size: 0.65rem;"></button>
+              </div>
             {% endfor %}
           {% endif %}
         {% endwith %}
-
-        <!-- Contenu principal : Login ou Page interne -->
-        {% if session.logged_in %}
-            {% block content %}{% endblock %}
-        {% else %}
-            {% block login_content %}{% endblock %}
-        {% endif %}
     </div>
 
+    {% else %}
+    <!-- ==========================================================================
+         VUE NON CONNECTÉ (Page Login / Accueil)
+         ========================================================================== -->
+    <div class="min-vh-100 d-flex flex-column justify-content-center bg-slate-50">
+        {% block login_content %}{% endblock %}
+    </div>
+    {% endif %}
+
+    <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Bloc pour JS spécifique à chaque page -->
+    
+    <script>
+    // Auto-dismiss pour les toasts flottants après 4.5 secondes
+    document.addEventListener('DOMContentLoaded', function() {
+        const toasts = document.querySelectorAll('.gtm-toast');
+        toasts.forEach(t => {
+            setTimeout(() => {
+                t.style.opacity = '0';
+                t.style.transform = 'translateY(10px)';
+                setTimeout(() => t.remove(), 300);
+            }, 4500);
+        });
+
+        // Fermeture automatique mutuelle : quand un pop-up s'ouvre, fermer tous les autres
+        document.addEventListener('show.bs.dropdown', function(event) {
+            const currentToggle = event.target;
+            const currentDropdown = currentToggle.closest('.dropdown');
+            const currentTr = currentToggle.closest('tr');
+
+            // Fermer tout autre dropdown qui serait resté ouvert
+            document.querySelectorAll('.dropdown-menu.show').forEach(function(openMenu) {
+                const parentDropdown = openMenu.closest('.dropdown');
+                if (parentDropdown && parentDropdown !== currentDropdown) {
+                    const toggleBtn = parentDropdown.querySelector('[data-bs-toggle="dropdown"]');
+                    if (toggleBtn) {
+                        const bsDropdown = bootstrap.Dropdown.getInstance(toggleBtn);
+                        if (bsDropdown) {
+                            bsDropdown.hide();
+                        } else {
+                            openMenu.classList.remove('show');
+                            toggleBtn.classList.remove('show');
+                            toggleBtn.setAttribute('aria-expanded', 'false');
+                        }
+                    }
+                }
+            });
+
+            // Réinitialiser la superposition (z-index) de toutes les autres lignes
+            document.querySelectorAll('table tbody tr').forEach(function(tr) {
+                if (tr !== currentTr) {
+                    tr.style.zIndex = '';
+                    tr.style.position = '';
+                }
+            });
+
+            // Élever la ligne active au premier plan absolu
+            if (currentTr) {
+                currentTr.style.zIndex = '9999';
+                currentTr.style.position = 'relative';
+            }
+        });
+
+        // Nettoyage lors de la fermeture d'un dropdown
+        document.addEventListener('hidden.bs.dropdown', function(event) {
+            const tr = event.target.closest('tr');
+            if (tr && !tr.querySelector('.dropdown-menu.show')) {
+                tr.style.zIndex = '';
+                tr.style.position = '';
+            }
+        });
+
+        // ======================================================================
+        // OUVERTURE AUTOMATIQUE AU SURVOL (HOVER) POUR LES 3 POINTS / DROPDOWNS
+        // ======================================================================
+        let hoverHideTimeout = null;
+
+        document.addEventListener('mouseover', function(e) {
+            const dropdown = e.target.closest('.dropdown-hover, .table .dropdown');
+            if (dropdown) {
+                clearTimeout(hoverHideTimeout);
+                const toggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                if (toggle) {
+                    const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(toggle);
+                    bsDropdown.show();
+                }
+            }
+        });
+
+        document.addEventListener('mouseout', function(e) {
+            const dropdown = e.target.closest('.dropdown-hover, .table .dropdown');
+            if (dropdown && !dropdown.contains(e.relatedTarget)) {
+                const toggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                if (toggle) {
+                    hoverHideTimeout = setTimeout(function() {
+                        const bsDropdown = bootstrap.Dropdown.getInstance(toggle);
+                        if (bsDropdown) {
+                            bsDropdown.hide();
+                        }
+                    }, 180);
+                }
+            }
+        });
+    });
+    </script>
+    
     {% block js %}{% endblock %}
 </body>
 </html>

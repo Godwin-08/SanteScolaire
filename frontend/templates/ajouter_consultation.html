@@ -1,122 +1,783 @@
 {% extends "base.html" %}
 
-{% block css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/ajouter_consultation.css') }}">
+{% block title %}{% if session.user_role == 'infirmier' %}Poste de Triage : {{ eleve.nom_eleve }} {{ eleve.prenom_eleve }}{% else %}Nouvelle Consultation : {{ eleve.nom_eleve }} {{ eleve.prenom_eleve }}{% endif %} - SanteScolaire{% endblock %}
+
+{% block page_title %}{% if session.user_role == 'infirmier' %}Poste de Triage &middot; Soins Infirmiers{% else %}Nouvelle Consultation Médicale{% endif %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('eleves.index') }}" class="text-decoration-none text-muted">Élèves &amp; Dossiers</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('eleves.dossier', id_eleve=eleve.id_eleve) }}" class="text-decoration-none text-muted">{{ eleve.nom_eleve }} {{ eleve.prenom_eleve }}</a></li>
+<li class="breadcrumb-item active text-dark fw-medium" aria-current="page">{% if session.user_role == 'infirmier' %}Triage Infirmier{% else %}Consultation{% endif %}</li>
+{% endblock %}
+
+{% block topbar_actions %}
+<div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('eleves.dossier', id_eleve=eleve.id_eleve) }}" class="btn btn-sm btn-white border rounded-pill px-3 shadow-xs text-secondary d-flex align-items-center gap-2" style="height: 38px; font-size: 0.82rem;">
+        <i class="fas fa-arrow-left text-muted"></i>
+        <span>Retour au Dossier</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .medicament-autocomplete-dropdown {
+        top: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16) !important;
+    }
+    .medicament-autocomplete-dropdown .autocomplete-item {
+        transition: background-color 0.15s ease;
+        cursor: pointer;
+    }
+    .medicament-autocomplete-dropdown .autocomplete-item:hover,
+    .medicament-autocomplete-dropdown .autocomplete-item.active {
+        background-color: #f1f5f9 !important;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-5 animate__animated animate__fadeInUp">
+<div class="container-fluid py-3 animate__animated animate__fadeIn">
     <div class="row justify-content-center">
-        <div class="col-md-8"> <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="bg-primary p-4 text-center">
-                    <h3 class="text-white fw-bold mb-0">{% if session.user_role == 'infirmier' %}Consultation Infirmière{% else %}Consultation Médicale{% endif %}</h3>
-                    <p class="text-white-50 small mb-0">Patient : {{ eleve.nom_eleve }} {{ eleve.prenom_eleve }}</p>
+        <div class="col-xl-9 col-lg-10 col-12">
+
+            <!-- ==========================================================================
+                 1. BANDEAU IDENTITÉ PATIENT & VIGILANCE PAI
+                 ========================================================================== -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle me-3 {{ 'bg-male' if eleve.sexe == 'M' else 'bg-female' }} shadow-xs" style="width: 52px; height: 52px; font-size: 1.25rem;">
+                            <i class="fas fa-user-graduate text-white"></i>
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <h4 class="fw-bold mb-0 text-dark">{{ eleve.nom_eleve }} {{ eleve.prenom_eleve }}</h4>
+                                {% if pai_actif %}
+                                <span class="badge bg-danger text-white rounded-pill px-3 py-1 fw-bold" style="font-size: 0.72rem;">
+                                    <i class="fas fa-triangle-exclamation me-1"></i> PAI ACTIF
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex align-items-center gap-3 mt-1 text-muted small">
+                                <span><i class="fas fa-school text-primary me-1"></i>Classe : <strong>{{ eleve.classe }}</strong></span>
+                                <span>&bull;</span>
+                                <span><i class="fas fa-id-badge me-1"></i>ID #{{ eleve.id_eleve }}</span>
+                                <span>&bull;</span>
+                                <span><i class="fas fa-calendar-day me-1"></i>Né(e) le : {{ eleve.date_naissance }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill small">
+                            <i class="fas fa-stethoscope text-primary me-1"></i>
+                            {% if session.user_role == 'infirmier' %}Poste de Triage &middot; Infirmier{% else %}Consultation Clinique &middot; Médecin{% endif %}
+                        </span>
+                    </div>
                 </div>
-                <div class="card-body p-4">
-                    <!-- Formulaire principal -->
-                    <form action="{{ url_for('consultations.enregistrer_visite') }}" method="POST" id="medForm">
-                        <input type="hidden" name="id_eleve" value="{{ eleve.id_eleve }}">
 
-                        <!-- Constantes Vitales -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-muted small uppercase">Poids (kg)</label>
-                                <input type="number" step="0.1" name="poids" class="form-control" placeholder="Ex: 45.5">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-muted small uppercase">Taille (cm)</label>
-                                <input type="number" name="taille" class="form-control" placeholder="Ex: 155">
-                            </div>
-                            <div class="col-md-6 mt-3">
-                                <label class="form-label fw-bold text-muted small uppercase">Température (°C)</label>
-                                <input type="number" step="0.1" name="temperature" class="form-control" placeholder="Ex: 37.5">
-                            </div>
-                            <div class="col-md-6 mt-3">
-                                <label class="form-label fw-bold text-muted small uppercase">Tension (mmHg)</label>
-                                <input type="text" name="tension" class="form-control" placeholder="Ex: 12/8">
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-muted small uppercase">Motif de la visite</label>
-                            <input type="text" name="motif" class="form-control form-control-lg" placeholder="Ex: Maux de tête..." required>
-                        </div>
-
-                        {% if session.user_role == 'medecin' %}
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-muted small uppercase">Observations cliniques</label>
-                            <textarea name="observations" class="form-control" rows="3" placeholder="Détails de l'examen..." required></textarea>
-                        </div>
-
-                        <!-- Section dynamique pour les prescriptions -->
-                        <div class="mb-4 p-3 border rounded-3 bg-white shadow-sm">
-                            <label class="form-label fw-bold text-primary small uppercase mb-3 d-block">Ordonnance / Prescriptions</label>
-                            
-                            <!-- Conteneur des lignes de médicaments -->
-                            <div id="prescription-container">
-                                <div class="row g-2 mb-2 prescription-row">
-                                    <div class="col-md-5">
-                                        <input type="text" name="medicament[]" class="form-control" placeholder="Médicament">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <input type="text" name="dosage[]" class="form-control" placeholder="Dosage">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <input type="text" name="duree[]" class="form-control" placeholder="Durée">
-                                    </div>
-                                    <div class="col-md-1 text-end">
-                                        <button type="button" class="btn btn-outline-danger border-0" onclick="removeRow(this)">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addRow()">
-                                <i class="fas fa-plus me-1"></i> Ajouter un médicament
-                            </button>
-                        </div>
-                        {% endif %}
-
-                        {% if session.user_role == 'infirmier' %}
-                        <!-- Section RDV pour Infirmier -->
-                        <div class="mb-4 p-4 bg-light rounded-3 border border-primary border-opacity-25">
-                            <h5 class="fw-bold text-primary mb-3"><i class="fas fa-calendar-check me-2"></i>Programmer un RDV Médecin</h5>
-                            <p class="small text-muted mb-3">Vérifiez la disponibilité du médecin avant de valider.</p>
-                            
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-muted uppercase">Médecin Spécialiste</label>
-                                    <select name="id_medecin_rdv" class="form-select" required>
-                                        <option value="" selected disabled>Choisir un médecin...</option>
-                                        {% for m in medecins %}
-                                        <option value="{{ m.id_medecin }}">Dr. {{ m.nom_medecin }} ({{ m.specialite }})</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-muted uppercase">Date et Heure</label>
-                                    <input type="datetime-local" name="date_rdv" class="form-control" required>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-pro py-3 shadow">
-                                <i class="fas fa-save me-2"></i>{% if session.user_role == 'infirmier' %}Valider Triage & RDV{% else %}Enregistrer Consultation{% endif %}
-                            </button>
-                            <a href="{{ url_for('eleves.dossier', id_eleve=eleve.id_eleve) }}" class="btn btn-link text-muted">Annuler</a>
-                        </div>
-                    </form>
+                <!-- Alerte si PAI ou Antécédent critique détecté -->
+                {% if pai_actif %}
+                <div class="mt-3 p-3 rounded-3 bg-danger bg-opacity-10 border border-danger border-opacity-25 small text-danger">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <strong><i class="fas fa-shield-heart me-1"></i> Vigilance Médicale Particulière :</strong>
+                        <span class="badge bg-danger text-white rounded-pill" style="font-size: 0.65rem;">Attention prescriptions</span>
+                    </div>
+                    <div>
+                        {% for ant in antecedents %}
+                            {% if ant.pai_signe or ant.severite == 'Critique' %}
+                            <span class="badge bg-white text-danger border border-danger border-opacity-25 me-1">
+                                {{ ant.type }} : {{ ant.description }}
+                            </span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
                 </div>
+                {% endif %}
             </div>
+
+            <!-- ==========================================================================
+                 2. FORMULAIRE MÉDICAL PRINCIPAL
+                 ========================================================================== -->
+            <form action="{{ url_for('consultations.enregistrer_visite') }}" method="POST" id="medForm">
+                <input type="hidden" name="id_eleve" value="{{ eleve.id_eleve }}">
+
+                <!-- ==========================================================================
+                     SECTION A : CONSTANTES VITALES (TRIAGE INFIRMIER VS VUE MÉDECIN)
+                     ========================================================================== -->
+                {% if session.user_role == 'medecin' %}
+                <!-- VUE MÉDECIN : Constantes relevées par l'infirmerie (Prêtes & Vérifiables) -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                    <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-heartbeat text-primary"></i>
+                            <h6 class="fw-bold mb-0 text-dark">Constantes Vitales de Triage</h6>
+                            {% if dernieres_constantes.nom_infirmier %}
+                            <span class="badge bg-light text-muted border px-2 py-0.5 rounded-pill small" style="font-size: 0.7rem;">
+                                Relevées par {{ dernieres_constantes.nom_infirmier }} (Infirmier)
+                            </span>
+                            {% endif %}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-link text-primary text-decoration-none p-0 small" onclick="toggleEditConstantes()">
+                            <i class="fas fa-pen me-1"></i> Ajuster / Recontrôler
+                        </button>
+                    </div>
+
+                    <!-- Affichage synthétique des constantes pour le médecin -->
+                    <div class="row g-3" id="vitalsReadonlyView">
+                        <div class="col-md-3 col-6">
+                            <div class="p-3 bg-light rounded-3 text-center border">
+                                <span class="d-block text-muted small fw-bold text-uppercase" style="font-size: 0.68rem;">Température</span>
+                                <strong class="fs-5 {% if dernieres_constantes.temperature and dernieres_constantes.temperature|float >= 38.0 %}text-danger{% else %}text-dark{% endif %}">
+                                    {{ dernieres_constantes.temperature|default('--', true) }} °C
+                                </strong>
+                                {% if dernieres_constantes.temperature and dernieres_constantes.temperature|float >= 38.0 %}
+                                <span class="badge bg-danger text-white rounded-pill d-block mt-1" style="font-size: 0.62rem;">Fièvre détectée</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-6">
+                            <div class="p-3 bg-light rounded-3 text-center border">
+                                <span class="d-block text-muted small fw-bold text-uppercase" style="font-size: 0.68rem;">Tension Artérielle</span>
+                                <strong class="fs-5 text-dark">
+                                    {{ dernieres_constantes.tension|default('--', true) }} <small class="text-muted fw-normal" style="font-size: 0.7rem;">mmHg</small>
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-6">
+                            <div class="p-3 bg-light rounded-3 text-center border">
+                                <span class="d-block text-muted small fw-bold text-uppercase" style="font-size: 0.68rem;">Poids &amp; Taille</span>
+                                <strong class="fs-6 text-dark d-block">
+                                    {{ dernieres_constantes.poids|default('?', true) }} kg &middot; {{ dernieres_constantes.taille|default('?', true) }} cm
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-6">
+                            <div class="p-3 bg-light rounded-3 text-center border">
+                                <span class="d-block text-muted small fw-bold text-uppercase" style="font-size: 0.68rem;">Statut IMC</span>
+                                <span id="imcBadgeMedecin" class="badge bg-light text-muted border px-2 py-1 rounded-pill small mt-1">
+                                    IMC calculé
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Champs masqués ou éditables si le médecin veut recontrôler -->
+                    <div class="row g-3 mt-2 d-none" id="vitalsEditView">
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">POIDS (KG)</label>
+                            <input type="number" step="0.1" name="poids" id="inputPoids" class="form-control" value="{{ dernieres_constantes.poids if dernieres_constantes.poids else '' }}">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">TAILLE (CM)</label>
+                            <input type="number" name="taille" id="inputTaille" class="form-control" value="{{ dernieres_constantes.taille if dernieres_constantes.taille else '' }}">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">TEMPÉRATURE (°C)</label>
+                            <input type="number" step="0.1" name="temperature" class="form-control" value="{{ dernieres_constantes.temperature if dernieres_constantes.temperature else '' }}">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">TENSION (MMHG)</label>
+                            <input type="text" name="tension" class="form-control" value="{{ dernieres_constantes.tension if dernieres_constantes.tension else '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <!-- VUE INFIRMIER : Saisie active des Constantes au Triage -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-heartbeat text-primary"></i>
+                            <h6 class="fw-bold mb-0 text-dark">Prise de Constantes Vitales &middot; Triage</h6>
+                        </div>
+                        <span id="imcBadge" class="badge bg-light text-muted border px-3 py-1 rounded-pill small">
+                            IMC : en attente de saisie
+                        </span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">TEMPÉRATURE (°C)</label>
+                            <div class="input-group">
+                                <input type="number" step="0.1" name="temperature" class="form-control" placeholder="Ex: 37.5">
+                                <span class="input-group-text bg-light text-muted small">°C</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">TENSION (MMHG)</label>
+                            <div class="input-group">
+                                <input type="text" name="tension" class="form-control" placeholder="Ex: 12/8">
+                                <span class="input-group-text bg-light text-muted small">mmHg</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">POIDS (KG)</label>
+                            <div class="input-group">
+                                <input type="number" step="0.1" name="poids" id="inputPoids" class="form-control" placeholder="Ex: 45.5" value="{{ dernieres_constantes.poids if dernieres_constantes.poids else '' }}">
+                                <span class="input-group-text bg-light text-muted small">kg</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">TAILLE (CM)</label>
+                            <div class="input-group">
+                                <input type="number" name="taille" id="inputTaille" class="form-control" placeholder="Ex: 155" value="{{ dernieres_constantes.taille if dernieres_constantes.taille else '' }}">
+                                <span class="input-group-text bg-light text-muted small">cm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- ==========================================================================
+                     SECTION B : MOTIF & DIAGNOSTIC CLINIQUE
+                     ========================================================================== -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                    <h6 class="fw-bold mb-3 text-dark border-bottom pb-2">
+                        <i class="fas fa-stethoscope text-primary me-2"></i>
+                        {% if session.user_role == 'medecin' %}Diagnostic Clinique &amp; Examen{% else %}Motif d'accueil à l'infirmerie{% endif %}
+                    </h6>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">MOTIF DE LA VISITE <span class="text-danger">*</span></label>
+                        <input type="text" name="motif" class="form-control form-control-lg" placeholder="Ex: Céphalées intenses, vertiges, douleur abdominale, plaie genou..." required>
+                    </div>
+
+                    {% if session.user_role == 'medecin' %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">OBSERVATIONS CLINIQUES &amp; DIAGNOSTIC POSÉ <span class="text-danger">*</span></label>
+                        <textarea name="observations" class="form-control" rows="4" placeholder="Examen clinique, auscultation, diagnostic médical, conduite à tenir et recommandations..." required></textarea>
+                    </div>
+
+                    <!-- DÉCISION SCOLAIRE & ORIENTATION DU PATIENT -->
+                    <div class="p-3 bg-light rounded-3 border">
+                        <label class="form-label small fw-bold text-primary mb-2 d-block">
+                            <i class="fas fa-school-circle-check me-1"></i> DÉCISION D'ORIENTATION SCOLAIRE
+                        </label>
+                        <div class="row g-2">
+                            <div class="col-md-3 col-6">
+                                <div class="form-check p-2 bg-white rounded border">
+                                    <input class="form-check-input ms-0 me-2" type="radio" name="decision_scolaire" id="decClasse" value="Retour immédiat en classe" checked>
+                                    <label class="form-check-label small fw-semibold" for="decClasse">Retour en classe</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="form-check p-2 bg-white rounded border">
+                                    <input class="form-check-input ms-0 me-2" type="radio" name="decision_scolaire" id="decRepos" value="Repos à l'infirmerie (surveillance 2h)">
+                                    <label class="form-check-label small fw-semibold" for="decRepos">Repos infirmerie</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="form-check p-2 bg-white rounded border">
+                                    <input class="form-check-input ms-0 me-2" type="radio" name="decision_scolaire" id="decEviction" value="Éviction scolaire / Retour domicile (Parents avisés)">
+                                    <label class="form-check-label small fw-semibold text-danger" for="decEviction">Retour domicile</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="form-check p-2 bg-white rounded border">
+                                    <input class="form-check-input ms-0 me-2" type="radio" name="decision_scolaire" id="decDispense" value="Dispense d'EPS temporaire délivrée">
+                                    <label class="form-check-label small fw-semibold text-warning" for="decDispense">Dispense sport</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- ==========================================================================
+                     SECTION C : ORDONNANCE & PRESCRIPTIONS (MÉDECIN UNIQUEMENT)
+                     ========================================================================== -->
+                {% if session.user_role == 'medecin' %}
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                    <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-pills text-primary"></i>
+                            <h6 class="fw-bold mb-0 text-dark">Ordonnance / Prescriptions Médicales</h6>
+                        </div>
+                        <span class="text-muted small">À délivrer en pharmacie d'officine externe</span>
+                    </div>
+
+                    <!-- Prescriptions Fréquentes en Santé Scolaire (1-Clic) -->
+                    <div class="mb-3 p-3 bg-light rounded-3 border">
+                        <label class="form-label small fw-bold text-muted mb-2 d-block">
+                            <i class="fas fa-bolt text-warning me-1"></i> Raccourcis fréquents (1-clic pour insérer la posologie standard) :
+                        </label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-white border rounded-pill shadow-xs small" onclick="prescrireRapide('Paracétamol 500mg', '1 comprimé toutes les 8h si douleur/fièvre', '3 jours')">
+                                <i class="fas fa-plus text-primary me-1"></i>Paracétamol 500mg
+                            </button>
+                            <button type="button" class="btn btn-sm btn-white border rounded-pill shadow-xs small" onclick="prescrireRapide('Spasfon Lyoc 80mg', '2 lyophilisats en cas de spasmes abdominaux', '3 jours')">
+                                <i class="fas fa-plus text-primary me-1"></i>Spasfon 80mg
+                            </button>
+                            <button type="button" class="btn btn-sm btn-white border rounded-pill shadow-xs small" onclick="prescrireRapide('Ventoline 100µg (Salbutamol)', '2 bouffées si crise + 2 bouffées avant EPS', '1 mois')">
+                                <i class="fas fa-plus text-primary me-1"></i>Ventoline 100µg
+                            </button>
+                            <button type="button" class="btn btn-sm btn-white border rounded-pill shadow-xs small" onclick="prescrireRapide('Cétirizine 10mg (Antihistaminique)', '1 comprimé le soir au coucher', '15 jours')">
+                                <i class="fas fa-plus text-primary me-1"></i>Cétirizine 10mg
+                            </button>
+                            <button type="button" class="btn btn-sm btn-white border rounded-pill shadow-xs small" onclick="prescrireRapide('Arnica Gel anti-inflammatoire', '2 applications par jour en massage doux', '5 jours')">
+                                <i class="fas fa-plus text-primary me-1"></i>Arnica Gel
+                            </button>
+                            <button type="button" class="btn btn-sm btn-white border rounded-pill shadow-xs small" onclick="prescrireRapide('Collyre apaisant lubrifiant', '1 goutte dans chaque œil 3 fois par jour', '5 jours')">
+                                <i class="fas fa-plus text-primary me-1"></i>Collyre apaisant
+                            </button>
+                            <button type="button" class="btn btn-sm btn-white border rounded-pill shadow-xs small" onclick="prescrireRapide('Amoxicilline 500mg', '1 gélule 3 fois par jour au cours des repas', '6 jours')">
+                                <i class="fas fa-plus text-primary me-1"></i>Amoxicilline 500mg
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Conteneur des lignes de prescriptions avec autocomplétion intelligente -->
+                    <div id="prescription-container">
+                        <div class="row g-2 mb-3 prescription-row align-items-start">
+                            <div class="col-md-5 col-12 position-relative">
+                                <label class="form-label small fw-bold text-muted d-md-none">Médicament</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white text-muted border-end-0"><i class="fas fa-search text-primary"></i></span>
+                                    <input type="text" name="medicament[]" class="form-control border-start-0 input-medicament" 
+                                           autocomplete="off" placeholder="Taper le médicament (DCI ou marque)...">
+                                </div>
+                                <!-- Menu déroulant de suggestions AJAX -->
+                                <div class="dropdown-menu shadow-lg w-100 p-0 overflow-auto medicament-autocomplete-dropdown" 
+                                     style="max-height: 280px; z-index: 1050; display: none; border-radius: 12px; border: 1px solid #cbd5e1; top: 100%; margin-top: 4px;">
+                                </div>
+                                <!-- Badge de stock temps réel -->
+                                <div class="stock-status-pill mt-1" style="min-height: 20px;"></div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label class="form-label small fw-bold text-muted d-md-none">Dosage</label>
+                                <input type="text" name="dosage[]" class="form-control input-dosage" list="listeDosages" placeholder="Posologie / Dosage...">
+                            </div>
+                            <div class="col-md-3 col-5">
+                                <label class="form-label small fw-bold text-muted d-md-none">Durée</label>
+                                <input type="text" name="duree[]" class="form-control input-duree" list="listeDurees" placeholder="Durée...">
+                            </div>
+                            <div class="col-md-1 col-1 text-end pt-1">
+                                <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle" onclick="removeRow(this)" title="Supprimer la ligne">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-white border rounded-pill px-3 shadow-xs text-primary fw-semibold" onclick="addRow()">
+                            <i class="fas fa-plus me-1"></i> Ajouter une ligne libre
+                        </button>
+                    </div>
+
+                    <!-- Datalists HTML5 pour posologies et durées courantes -->
+
+                    <datalist id="listeDosages">
+                        <option value="1 comprimé matin et soir">
+                        <option value="1 comprimé toutes les 8h si besoin">
+                        <option value="1 sachet dans un verre d'eau 3x/jour">
+                        <option value="2 bouffées en cas de crise">
+                        <option value="1 application locale matin et soir">
+                        <option value="1 goutte dans chaque œil 3x/jour">
+                        <option value="1 gélule 3 fois par jour">
+                    </datalist>
+
+                    <datalist id="listeDurees">
+                        <option value="3 jours">
+                        <option value="5 jours">
+                        <option value="6 jours">
+                        <option value="7 jours">
+                        <option value="10 jours">
+                        <option value="15 jours">
+                        <option value="1 mois (Traitement de fond)">
+                    </datalist>
+                </div>
+                {% endif %}
+
+                <!-- ==========================================================================
+                     SECTION D : PROGRAMMATION RDV MÉDECIN (INFIRMIER UNIQUEMENT)
+                     ========================================================================== -->
+                {% if session.user_role == 'infirmier' %}
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white border-start border-4 border-primary">
+                    <h6 class="fw-bold text-primary mb-2"><i class="fas fa-calendar-check me-2"></i>Orientation vers un Médecin Spécialiste</h6>
+                    <p class="small text-muted mb-3">Si la visite dépasse les soins infirmiers courants, transmettez immédiatement l'élève au médecin.</p>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">MÉDECIN DE GARDE</label>
+                            <select name="id_medecin_rdv" class="form-select">
+                                <option value="" selected>Aucun RDV requis (soins infirmiers simples clôturés)</option>
+                                {% for m in medecins %}
+                                <option value="{{ m.id_medecin }}">Dr. {{ m.nom_medecin }} ({{ m.specialite }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">DATE &amp; HEURE DU RDV</label>
+                            <input type="datetime-local" name="date_rdv" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- ACTIONS DE VALIDATION -->
+                <div class="d-flex align-items-center justify-content-between mb-5">
+                    <a href="{{ url_for('eleves.dossier', id_eleve=eleve.id_eleve) }}" class="btn btn-light rounded-pill px-4 text-secondary">
+                        <i class="fas fa-times me-1"></i> Annuler
+                    </a>
+
+                    <button type="submit" class="btn btn-primary rounded-pill px-5 py-2 shadow fw-bold text-white">
+                        <i class="fas fa-check me-2"></i>
+                        {% if session.user_role == 'infirmier' %}Enregistrer le Triage Infirmier{% else %}Clôturer &amp; Enregistrer la Consultation{% endif %}
+                    </button>
+                </div>
+
+            </form>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block js %}
-<script src="{{ url_for('static', filename='js/ajouter_consultation.js') }}"></script>
+<script>
+    // Initialisation du comportement d'autocomplétion sur une ligne de prescription
+    function initMedicamentAutocomplete(row) {
+        if (!row) return;
+        const input = row.querySelector('.input-medicament');
+        const dropdown = row.querySelector('.medicament-autocomplete-dropdown');
+        const dosageInput = row.querySelector('.input-dosage');
+        const dureeInput = row.querySelector('.input-duree');
+        const stockPill = row.querySelector('.stock-status-pill');
+
+        if (!input || !dropdown) return;
+
+        let debounceTimer = null;
+        let activeIndex = -1;
+
+        // Fonction pour afficher le badge de stock
+        function updateStockBadge(item) {
+            if (!stockPill) return;
+            if (item.en_stock_ecole) {
+                stockPill.innerHTML = `
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-0.5 small animate__animated animate__fadeIn">
+                        <i class="fas fa-school text-success me-1"></i> <strong>Infirmerie</strong> : ${item.stock_quantite} ${item.stock_unite} disponible(s)
+                    </span>
+                `;
+            } else {
+                stockPill.innerHTML = `
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-0.5 small animate__animated animate__fadeIn">
+                        <i class="fas fa-store me-1"></i> <strong>Pharmacie d'officine</strong> (ordonnance externe)
+                    </span>
+                `;
+            }
+        }
+
+        // Écouteur de frappe
+        input.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const query = this.value.trim();
+
+            if (query.length < 1) {
+                dropdown.style.display = 'none';
+                if (stockPill) stockPill.innerHTML = '';
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                fetch(`/api/medicaments/recherche?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data || data.length === 0) {
+                            dropdown.innerHTML = `
+                                <div class="p-3 text-center text-muted small">
+                                    <i class="fas fa-info-circle me-1"></i> Aucun médicament répertorié. Vous pouvez le saisir librement.
+                                </div>
+                            `;
+                            dropdown.style.display = 'block';
+                            return;
+                        }
+
+                        let html = '';
+                        data.forEach((item, idx) => {
+                            const badgeStock = item.en_stock_ecole 
+                                ? `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill small py-0.5 px-2" style="font-size:0.68rem;"><i class="fas fa-school me-1"></i>École (${item.stock_quantite})</span>`
+                                : `<span class="badge bg-light text-muted border rounded-pill small py-0.5 px-2" style="font-size:0.68rem;"><i class="fas fa-store me-1"></i>Officine</span>`;
+
+                            html += `
+                                <a href="javascript:void(0)" class="dropdown-item px-3 py-2 border-bottom autocomplete-item" data-index="${idx}">
+                                    <div class="d-flex align-items-center justify-content-between gap-2">
+                                        <div class="overflow-hidden">
+                                            <div class="fw-bold text-dark text-truncate" style="font-size: 0.86rem;">${item.nom}</div>
+                                            <div class="text-muted small text-truncate" style="font-size: 0.72rem;">
+                                                ${item.dci ? '<span class="text-secondary fw-semibold">' + item.dci + '</span> &middot; ' : ''}${item.forme} 
+                                                <span class="text-muted">(${item.classe || 'Général'})</span>
+                                            </div>
+                                        </div>
+                                        <div class="text-end flex-shrink-0">
+                                            ${badgeStock}
+                                        </div>
+                                    </div>
+                                </a>
+                            `;
+                        });
+
+                        dropdown.innerHTML = html;
+                        dropdown.style.display = 'block';
+                        activeIndex = -1;
+
+                        // Sélection d'un résultat (mousedown pour devancer le blur)
+                        dropdown.querySelectorAll('.autocomplete-item').forEach(el => {
+                            const onSelect = function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const idx = parseInt(el.dataset.index);
+                                const selected = data[idx];
+                                if (selected) {
+                                    input.value = selected.nom;
+                                    if (dosageInput && (!dosageInput.value || !dosageInput.value.trim())) {
+                                        dosageInput.value = selected.dosage;
+                                    }
+                                    if (dureeInput && (!dureeInput.value || !dureeInput.value.trim())) {
+                                        dureeInput.value = selected.duree;
+                                    }
+                                    updateStockBadge(selected);
+                                }
+                                dropdown.style.display = 'none';
+                            };
+                            el.addEventListener('mousedown', onSelect);
+                            el.addEventListener('click', onSelect);
+                        });
+                    })
+                    .catch(err => {
+                        console.error("Erreur recherche médicaments:", err);
+                    });
+            }, 180);
+        });
+
+        // Navigation clavier (flèches et Entrée)
+        input.addEventListener('keydown', function(e) {
+            const items = dropdown.querySelectorAll('.autocomplete-item');
+            if (dropdown.style.display === 'block' && items.length > 0) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex + 1) % items.length;
+                    items.forEach((it, i) => it.classList.toggle('active', i === activeIndex));
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex - 1 + items.length) % items.length;
+                    items.forEach((it, i) => it.classList.toggle('active', i === activeIndex));
+                } else if (e.key === 'Enter') {
+                    if (activeIndex >= 0 && items[activeIndex]) {
+                        e.preventDefault();
+                        items[activeIndex].click();
+                    }
+                } else if (e.key === 'Escape') {
+                    dropdown.style.display = 'none';
+                }
+            }
+        });
+
+        // Fermeture automatique au clic en dehors
+        document.addEventListener('click', function(e) {
+            if (!row.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
+
+    // Vérifie et affiche le statut stock pour un nom donné
+    function verifierStockPourLigne(row, nomMedicament) {
+        if (!row || !nomMedicament) return;
+        const stockPill = row.querySelector('.stock-status-pill');
+        if (!stockPill) return;
+
+        fetch(`/api/medicaments/recherche?q=${encodeURIComponent(nomMedicament.trim())}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const match = data[0];
+                    if (match.en_stock_ecole) {
+                        stockPill.innerHTML = `
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-0.5 small animate__animated animate__fadeIn">
+                                <i class="fas fa-school text-success me-1"></i> <strong>Infirmerie</strong> : ${match.stock_quantite} ${match.stock_unite} disponible(s)
+                            </span>
+                        `;
+                    } else {
+                        stockPill.innerHTML = `
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-0.5 small animate__animated animate__fadeIn">
+                                <i class="fas fa-store me-1"></i> <strong>Pharmacie d'officine</strong> (ordonnance externe)
+                            </span>
+                        `;
+                    }
+                }
+            })
+            .catch(() => {});
+    }
+
+    // Ajout dynamique de lignes d'ordonnance avec support de valeurs par défaut et autocomplétion
+    function addRow(med = '', dosage = '', duree = '') {
+        const container = document.getElementById('prescription-container');
+        if (!container) return;
+        const row = document.createElement('div');
+        row.className = 'row g-2 mb-3 prescription-row align-items-start animate__animated animate__fadeIn';
+        row.innerHTML = `
+            <div class="col-md-5 col-12 position-relative">
+                <label class="form-label small fw-bold text-muted d-md-none">Médicament</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white text-muted border-end-0"><i class="fas fa-search text-primary"></i></span>
+                    <input type="text" name="medicament[]" class="form-control border-start-0 input-medicament" 
+                           autocomplete="off" placeholder="Taper le médicament (DCI ou marque)..." value="${med}">
+                </div>
+                <!-- Menu déroulant de suggestions AJAX -->
+                <div class="dropdown-menu shadow-lg w-100 p-0 overflow-auto medicament-autocomplete-dropdown" 
+                     style="max-height: 280px; z-index: 1050; display: none; border-radius: 12px; border: 1px solid #cbd5e1; top: 100%; margin-top: 4px;">
+                </div>
+                <!-- Badge de stock temps réel -->
+                <div class="stock-status-pill mt-1" style="min-height: 20px;"></div>
+            </div>
+            <div class="col-md-3 col-6">
+                <label class="form-label small fw-bold text-muted d-md-none">Dosage</label>
+                <input type="text" name="dosage[]" class="form-control input-dosage" list="listeDosages" placeholder="Posologie / Dosage..." value="${dosage}">
+            </div>
+            <div class="col-md-3 col-5">
+                <label class="form-label small fw-bold text-muted d-md-none">Durée</label>
+                <input type="text" name="duree[]" class="form-control input-duree" list="listeDurees" placeholder="Durée..." value="${duree}">
+            </div>
+            <div class="col-md-1 col-1 text-end pt-1">
+                <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle" onclick="removeRow(this)" title="Supprimer la ligne">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(row);
+        initMedicamentAutocomplete(row);
+
+        if (med) {
+            verifierStockPourLigne(row, med);
+        }
+    }
+
+    // Prescription 1-Clic : remplit la première ligne vide ou en ajoute une nouvelle
+    function prescrireRapide(med, dosage, duree) {
+        const rows = document.querySelectorAll('.prescription-row');
+        let filled = false;
+
+        // Si la première ligne est totalement vide, on la remplit directement
+        if (rows.length === 1) {
+            const firstRow = rows[0];
+            const medInput = firstRow.querySelector('input[name="medicament[]"]');
+            const dosageInput = firstRow.querySelector('input[name="dosage[]"]');
+            const dureeInput = firstRow.querySelector('input[name="duree[]"]');
+
+            if (medInput && !medInput.value.trim()) {
+                medInput.value = med;
+                dosageInput.value = dosage;
+                dureeInput.value = duree;
+                firstRow.classList.add('animate__animated', 'animate__flash');
+                verifierStockPourLigne(firstRow, med);
+                filled = true;
+            }
+        }
+
+        // Sinon, on ajoute une nouvelle ligne pré-remplie
+        if (!filled) {
+            addRow(med, dosage, duree);
+        }
+    }
+
+    function removeRow(btn) {
+        const rows = document.querySelectorAll('.prescription-row');
+        if (rows.length > 1) {
+            btn.closest('.prescription-row').remove();
+        } else {
+            const inputs = rows[0].querySelectorAll('input');
+            inputs.forEach(i => i.value = '');
+            const pill = rows[0].querySelector('.stock-status-pill');
+            if (pill) pill.innerHTML = '';
+        }
+    }
+
+    // Basculer l'affichage pour ajuster les constantes si le médecin le souhaite
+    function toggleEditConstantes() {
+        const editView = document.getElementById('vitalsEditView');
+        if (editView) {
+            editView.classList.toggle('d-none');
+        }
+    }
+
+    // Calcul dynamique de l'IMC avec classification clinique
+    function calculerIMC() {
+        const poidsInput = document.querySelector('input[name="poids"]');
+        const tailleInput = document.querySelector('input[name="taille"]');
+        const badgeInfirmier = document.getElementById('imcBadge');
+        const badgeMedecin = document.getElementById('imcBadgeMedecin');
+
+        const p = parseFloat(poidsInput ? poidsInput.value : 0);
+        const t = parseFloat(tailleInput ? tailleInput.value : 0);
+
+        if (p > 10 && t > 50) {
+            const tm = t / 100;
+            const imc = (p / (tm * tm)).toFixed(1);
+            let label = "Corpulence normale";
+            let colorClass = "bg-success text-success border-success";
+
+            if (imc < 16.5) {
+                label = "Dénutrition";
+                colorClass = "bg-danger text-danger border-danger";
+            } else if (imc < 18.5) {
+                label = "Maigreur";
+                colorClass = "bg-warning text-dark border-warning";
+            } else if (imc < 25) {
+                label = "Corpulence normale";
+                colorClass = "bg-success text-success border-success";
+            } else if (imc < 30) {
+                label = "Surpoids";
+                colorClass = "bg-warning text-dark border-warning";
+            } else {
+                label = "Obésité";
+                colorClass = "bg-danger text-danger border-danger";
+            }
+
+            const badgeHtml = `<i class="fas fa-heartbeat me-1"></i> IMC : <strong>${imc}</strong> (${label})`;
+
+            if (badgeInfirmier) {
+                badgeInfirmier.className = `badge bg-opacity-10 border border-opacity-25 px-3 py-1 rounded-pill small ${colorClass} animate__animated animate__fadeIn`;
+                badgeInfirmier.innerHTML = badgeHtml;
+            }
+            if (badgeMedecin) {
+                badgeMedecin.className = `badge bg-opacity-10 border border-opacity-25 px-2 py-1 rounded-pill small mt-1 ${colorClass}`;
+                badgeMedecin.innerHTML = badgeHtml;
+            }
+        } else {
+            if (badgeInfirmier) {
+                badgeInfirmier.className = "badge bg-light text-muted border px-3 py-1 rounded-pill small";
+                badgeInfirmier.textContent = "IMC : en attente de saisie";
+            }
+        }
+    }
+
+    // Initialisation au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.prescription-row').forEach(row => {
+            initMedicamentAutocomplete(row);
+        });
+
+        // Écouteurs de changement de poids et taille pour calcul instantané
+        document.querySelectorAll('input[name="poids"], input[name="taille"]').forEach(input => {
+            input.addEventListener('input', calculerIMC);
+            input.addEventListener('change', calculerIMC);
+        });
+
+        // Calcul immédiat au chargement
+        calculerIMC();
+    });
+</script>
 {% endblock %}

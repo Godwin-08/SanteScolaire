@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Détails {{ membre.type }} — {{ membre.prenom }} {{ membre.nom }}{% endblock %}
+
+{% block css %}
+<style>
+    .card-detail {
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+    .badge-soft-success { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-soft-warning { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-soft-danger  { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .badge-soft-primary { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-100 animate__animated animate__fadeIn">
+
+    <!-- Fil d'Ariane & Bouton Retour -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="{{ url_for('admin.liste_personnel') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
+            <i class="fas fa-arrow-left me-2"></i>Retour aux soignants
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            {% if membre.statut in ['En attente', 'Expiré'] %}
+            <form action="{{ url_for('admin.renvoyer_activation', type_perso=membre.raw_type, id_perso=membre.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Générer et renvoyer un nouvel email d\'activation (valable 48h) à {{ membre.email }} ?');">
+                <button type="submit" class="btn btn-warning btn-sm text-dark fw-bold shadow-sm rounded-pill px-3">
+                    <i class="fas fa-paper-plane me-1.5"></i> Renvoyer le lien d'invitation
+                </button>
+            </form>
+            {% endif %}
+            <button class="btn btn-outline-primary btn-sm shadow-sm rounded-pill px-3" onclick="openEditModal('{{ membre.raw_type }}', '{{ membre.id }}', '{{ membre.prenom }}', '{{ membre.nom }}', '{{ membre.id_specialite or '' }}', '{{ membre.email }}')">
+                <i class="fas fa-pen me-1"></i>Modifier
+            </button>
+            <form action="{{ url_for('admin.supprimer_personnel', type_perso=membre.raw_type, id_perso=membre.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Voulez-vous vraiment supprimer ce soignant ?');">
+                <button type="submit" class="btn btn-outline-danger btn-sm shadow-sm rounded-pill px-3">
+                    <i class="fas fa-trash-alt me-1"></i>Supprimer
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- En-tête de la Fiche Profil -->
+    <div class="card card-detail shadow-sm p-4 mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="avatar-lg rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 64px; height: 64px; font-size: 1.5rem; background-color: {% if membre.raw_type == 'medecin' %}#1e3a8a{% else %}#0d9488{% endif %};">
+                    {{ membre.prenom[0] }}{{ membre.nom[0] }}
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <h3 class="fw-bold text-dark mb-0">{% if membre.raw_type == 'medecin' %}Dr. {% endif %}{{ membre.prenom }} {{ membre.nom }}</h3>
+                        {% if membre.statut == 'Actif' %}
+                            <span class="badge badge-soft-success"><i class="fas fa-check-circle me-1"></i>Compte Actif</span>
+                        {% elif membre.statut == 'Expiré' %}
+                            <span class="badge badge-soft-danger"><i class="fas fa-exclamation-triangle me-1"></i>Lien Expiré (>48h)</span>
+                        {% else %}
+                            <span class="badge badge-soft-warning"><i class="fas fa-hourglass-half me-1"></i>Invitation en attente</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-muted mb-0 small">
+                        <i class="fas fa-id-badge me-1"></i> Identifiant système : <strong>#{{ membre.id }}</strong> | 
+                        <i class="fas fa-envelope ms-2 me-1"></i> <span class="font-monospace">{{ membre.email }}</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Badge de Spécialité / Fonction -->
+            <div class="text-end">
+                <span class="badge {% if membre.raw_type == 'medecin' %}badge-soft-primary{% else %}bg-teal-subtle text-teal border{% endif %} px-3 py-2 fs-6">
+                    <i class="fas {% if membre.raw_type == 'medecin' %}fa-user-doctor{% else %}fa-user-nurse{% endif %} me-2"></i>{{ membre.type }} — {{ membre.specialite }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grille de Détails -->
+    <div class="row g-4 mb-4">
+        
+        <!-- Bloc 1 : Statut Sécurité & Workflow d'Activation (48h) -->
+        <div class="col-lg-6">
+            <div class="card card-detail shadow-sm h-100 p-4">
+                <h5 class="fw-bold text-dark mb-3">
+                    <i class="fas fa-shield-halved text-primary me-2"></i>Sécurité & Parcours d'Activation (48h)
+                </h5>
+                <div class="list-group list-group-flush small">
+                    <div class="list-group-item d-flex justify-content-between py-3 px-0">
+                        <span class="text-muted">Statut du compte :</span>
+                        <span class="fw-bold">{{ membre.statut }}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between py-3 px-0">
+                        <span class="text-muted">Délai d'expiration du lien :</span>
+                        <span class="fw-bold text-dark">{{ membre.date_expiration }}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between py-3 px-0">
+                        <span class="text-muted">Hash du token (SHA-256) :</span>
+                        <span class="font-monospace text-muted text-truncate" style="max-width: 250px;">
+                            {{ membre.token_hash or 'Compte finalisé (Token révoqué)' }}
+                        </span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between py-3 px-0">
+                        <span class="text-muted">Changement de mot de passe requis :</span>
+                        <span class="fw-bold">{{ 'Oui' if membre.must_change_password else 'Non' }}</span>
+                    </div>
+                </div>
+
+                {% if membre.statut != 'Actif' and activation_link %}
+                <div class="alert alert-info border-0 rounded-3 small mt-3 mb-0">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <strong><i class="fas fa-link me-1"></i> Lien d'activation généré :</strong>
+                        <button class="btn btn-sm btn-outline-primary border-0 py-0" onclick="navigator.clipboard.writeText('{{ activation_link }}'); alert('Lien copié dans le presse-papiers !');">
+                            <i class="fas fa-copy me-1"></i>Copier
+                        </button>
+                    </div>
+                    <div class="font-monospace small text-truncate">{{ activation_link }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Bloc 2 : Activité Clinique & Rendez-vous -->
+        <div class="col-lg-6">
+            <div class="card card-detail shadow-sm h-100 p-4">
+                <h5 class="fw-bold text-dark mb-3">
+                    <i class="fas fa-calendar-check text-success me-2"></i>Activité Médicale Enregistrée
+                </h5>
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-3 border text-center">
+                            <span class="text-muted small d-block">Consultations menées</span>
+                            <h3 class="fw-bold text-primary mb-0 mt-1">{{ consultations|length }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-3 border text-center">
+                            <span class="text-muted small d-block">Rendez-vous prévus</span>
+                            <h3 class="fw-bold text-success mb-0 mt-1">{{ rdvs|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold text-dark small text-uppercase mb-2">Derniers actes médicaux</h6>
+                <div class="list-group list-group-flush small">
+                    {% for c in consultations[:3] %}
+                    <div class="list-group-item py-2 px-0 d-flex justify-content-between">
+                        <div>
+                            <span class="fw-semibold text-dark">{{ c.motif }}</span>
+                            <small class="text-muted d-block">Élève : {{ c.prenom_eleve }} {{ c.nom_eleve }}</small>
+                        </div>
+                        <span class="text-muted font-monospace">{{ c.date_consult.strftime('%d/%m/%Y') if c.date_consult else '-' }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0">Aucun acte médical enregistré pour ce praticien.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bloc 3 : Journal d'Audit Spécifique à ce Membre -->
+    <div class="card card-detail shadow-sm p-4">
+        <h5 class="fw-bold text-dark mb-3">
+            <i class="fas fa-history text-secondary me-2"></i>Historique des Événements d'Audit
+        </h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr class="small text-muted text-uppercase">
+                        <th>Date & Heure</th>
+                        <th>Action</th>
+                        <th>Détails</th>
+                        <th>Adresse IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td class="font-monospace small text-muted">{{ log.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle small">{{ log.action }}</span></td>
+                        <td class="small text-dark">{{ log.details }}</td>
+                        <td class="font-monospace small text-muted">{{ log.ip_address or '127.0.0.1' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3 small">Aucun événement d'audit récent pour ce profil.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Modification Personnel -->
+<div class="modal fade" id="modalEditStaff" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-edit text-primary me-2"></i>Modifier Personnel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.modifier_personnel') }}" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="editId">
+                    <input type="hidden" name="type" id="editType">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">PRÉNOM</label>
+                            <input type="text" name="prenom" id="editPrenom" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">NOM</label>
+                            <input type="text" name="nom" id="editNom" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">EMAIL</label>
+                        <input type="email" name="email" id="editEmail" class="form-control" required>
+                    </div>
+                    <div id="editMedecinFields" class="mb-3">
+                        <label class="form-label small fw-bold">SPÉCIALITÉ MÉDICALE</label>
+                        <select name="id_specialite" id="editSpecialite" class="form-select">
+                            <option value="">-- Aucune / Généraliste --</option>
+                            {% for s in specialites %}
+                            <option value="{{ s.id_specialite }}">{{ s.nom_specialite }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">RÉINITIALISER LE MOT DE PASSE (Optionnel)</label>
+                        <input type="password" name="password" class="form-control" placeholder="Laisser vide pour conserver l'actuel">
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+function openEditModal(type, id, prenom, nom, id_specialite, email) {
+    document.getElementById('editId').value = id;
+    document.getElementById('editType').value = type;
+    document.getElementById('editPrenom').value = prenom || '';
+    document.getElementById('editNom').value = nom || '';
+    document.getElementById('editEmail').value = email || '';
+    
+    const fields = document.getElementById('editMedecinFields');
+    const specSelect = document.getElementById('editSpecialite');
+    
+    if (type === 'medecin') {
+        fields.classList.remove('d-none');
+        specSelect.value = id_specialite || '';
+    } else {
+        fields.classList.add('d-none');
+        specSelect.value = '';
+    }
+    
+    new bootstrap.Modal(document.getElementById('modalEditStaff')).show();
+}
+</script>
+{% endblock %}
+

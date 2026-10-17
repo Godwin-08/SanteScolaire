@@ -63,3 +63,5 @@ Thumbs.db
 medecin_emails.json
 .tmp/
 .pip-audit-cache/
+pytest-cache-files-*/
+

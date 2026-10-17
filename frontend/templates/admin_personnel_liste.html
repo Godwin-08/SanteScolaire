@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block page_title %}Médecins & Infirmiers{% endblock %}
+
+{% block topbar_actions %}
+<div class="d-flex align-items-center gap-2">
+    <button class="btn btn-primary btn-sm px-3 shadow-sm rounded-pill fw-medium" data-bs-toggle="modal" data-bs-target="#modalInviterPersonnel">
+        <i class="fas fa-user-plus me-1"></i> Inviter Soignant
+    </button>
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary btn-sm rounded-pill dropdown-toggle px-3" type="button" data-bs-toggle="dropdown">
+            <i class="fas fa-file-export me-1"></i> Exporter
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+            <li><a class="dropdown-item" href="{{ url_for('admin.export_data', export_type='personnel_csv') }}"><i class="fas fa-file-csv me-2 text-success"></i>Format CSV</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin.export_data', export_type='personnel_excel') }}"><i class="fas fa-file-excel me-2 text-primary"></i>Format Excel</a></li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="w-100">
+    <!-- Mini KPI Banner (Hospital Workstation Style) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Médecins</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ total_medecins }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-user-doctor fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Infirmiers</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ total_infirmiers }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-info bg-opacity-10 text-info">
+                        <i class="fas fa-user-nurse fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Actifs</div>
+                        <div class="fs-4 fw-bold text-success mt-1">{{ total_actifs }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-success bg-opacity-10 text-success">
+                        <i class="fas fa-circle-check fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Invitations en attente</div>
+                        <div class="fs-4 fw-bold text-warning mt-1">{{ total_en_attente }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-warning bg-opacity-10 text-warning">
+                        <i class="fas fa-clock fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar (GTM Style) -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-3">
+        <form method="GET" action="{{ url_for('admin.liste_personnel') }}" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control bg-light border-0" placeholder="Rechercher nom, prénom, email..." value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="role" class="form-select bg-light border-0">
+                    <option value="all" {% if role_filter == 'all' %}selected{% endif %}>Tous les rôles</option>
+                    <option value="medecin" {% if role_filter == 'medecin' %}selected{% endif %}>Médecins</option>
+                    <option value="infirmier" {% if role_filter == 'infirmier' %}selected{% endif %}>Infirmiers</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="specialite" class="form-select bg-light border-0">
+                    <option value="all">Toutes spécialités</option>
+                    {% for s in specialites %}
+                    <option value="{{ s.id_specialite }}" {% if spe_filter == s.id_specialite|string %}selected{% endif %}>{{ s.nom_specialite }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="statut" class="form-select bg-light border-0">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Tous statuts</option>
+                    <option value="Actif" {% if status_filter == 'Actif' %}selected{% endif %}>Actif</option>
+                    <option value="En attente" {% if status_filter == 'En attente' %}selected{% endif %}>En attente</option>
+                    <option value="Expiré" {% if status_filter == 'Expiré' %}selected{% endif %}>Expiré</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter"></i></button>
+                {% if search_query or role_filter != 'all' or status_filter != 'all' or spe_filter != 'all' %}
+                <a href="{{ url_for('admin.liste_personnel') }}" class="btn btn-light" title="Réinitialiser"><i class="fas fa-xmark"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Card with Interactive Rows & Offcanvas Drawer -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center p-3">
+            <span class="fw-bold text-dark"><i class="fas fa-users me-2 text-primary"></i>Liste des Praticiens</span>
+            <span class="badge bg-light text-muted border">{{ personnel|length }} praticien(s) répertorié(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table gtm-table align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4">Praticien</th>
+                        <th>Rôle</th>
+                        <th>Spécialité Clinique</th>
+                        <th>Coordonnées</th>
+                        <th>Statut Compte</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in personnel %}
+                    <tr class="gtm-interactive-row" 
+                        onclick="if (!event.target.closest('a, button, .dropdown')) window.location.href = '{{ url_for('admin.personnel_detail', type_perso=p.raw_type, id_perso=p.id) }}';"
+                        data-id="{{ p.id }}"
+                        data-type="{{ p.raw_type }}"
+                        data-nom="{{ p.nom }}"
+                        data-prenom="{{ p.prenom }}"
+                        data-email="{{ p.email }}"
+                        data-role="{{ p.type }}"
+                        data-specialite="{{ p.specialite or 'Non assignée' }}"
+                        data-statut="{{ p.statut }}"
+                        data-detail-url="{{ url_for('admin.personnel_detail', type_perso=p.raw_type, id_perso=p.id) }}">
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" 
+                                     style="width: 38px; height: 38px; background: {% if p.raw_type == 'medecin' %}#10AC84{% else %}#0ea5e9{% endif %}; font-size: 0.85rem;">
+                                    {{ p.prenom[0]|upper }}{{ p.nom[0]|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold text-dark">{{ p.prenom }} {{ p.nom }}</div>
+                                    <small class="text-muted">ID: #{{ p.raw_type[:3]|upper }}-{{ p.id }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if p.raw_type == 'medecin' %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1"><i class="fas fa-user-doctor me-1"></i>Médecin</span>
+                            {% else %}
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1"><i class="fas fa-user-nurse me-1"></i>Infirmier</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="text-secondary fw-medium">{{ p.specialite or '—' }}</span>
+                        </td>
+                        <td>
+                            <div class="text-dark"><i class="far fa-envelope me-1 text-muted"></i>{{ p.email }}</div>
+                        </td>
+                        <td>
+                            {% if p.statut == 'Actif' %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-circle-check me-1"></i>Actif</span>
+                            {% elif p.statut == 'En attente' %}
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1"><i class="fas fa-clock me-1"></i>En attente</span>
+                            {% else %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="fas fa-triangle-exclamation me-1"></i>Expiré</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4" onclick="event.stopPropagation()">
+                            <div class="d-inline-flex align-items-center gap-1.5">
+                                {% if p.statut in ['En attente', 'Expiré'] %}
+                                <form action="{{ url_for('admin.renvoyer_activation', type_perso=p.raw_type, id_perso=p.id) }}" method="POST" class="d-inline" onsubmit="event.stopPropagation(); return confirm('Renvoyer un nouveau lien d\'activation par email à {{ p.prenom }} {{ p.nom }} ({{ p.email }}) ?');">
+                                    <button type="submit" class="btn btn-sm btn-white border border-warning text-dark rounded-pill px-2.5 py-1 shadow-xs fw-semibold" title="Renvoyer l'email d'activation" style="font-size: 0.72rem;">
+                                        <i class="fas fa-paper-plane text-warning me-1"></i> Relancer
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <a href="{{ url_for('admin.personnel_detail', type_perso=p.raw_type, id_perso=p.id) }}" class="btn btn-sm btn-light text-primary rounded-circle" title="Voir dossier complet" style="width:32px; height:32px; padding:4px;">
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fas fa-user-slash fs-1 d-block mb-3 opacity-25"></i>
+                            Aucun soignant ne correspond aux critères sélectionnés.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Offcanvas Drawer de Détail Praticien (GTM Pattern) -->
+<div class="offcanvas offcanvas-end shadow" tabindex="-1" id="drawerPersonnelDetail" style="width: 440px;">
+    <div class="offcanvas-header bg-light border-bottom">
+        <h5 class="offcanvas-title fw-bold text-dark d-flex align-items-center gap-2">
+            <i class="fas fa-id-card text-primary"></i> Fiche Express Soignant
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-4">
+        <div class="text-center mb-4">
+            <div id="drawerAvatar" class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold shadow mb-3" style="width: 64px; height: 64px; font-size: 1.5rem; background: #10AC84;">
+                --
+            </div>
+            <h5 class="fw-bold text-dark mb-1" id="drawerNomPrenom">Chargement...</h5>
+            <div class="d-flex justify-content-center gap-2 align-items-center">
+                <span class="badge bg-primary" id="drawerRole">Rôle</span>
+                <span class="badge bg-success" id="drawerStatut">Actif</span>
+            </div>
+        </div>
+
+        <div class="card border-0 bg-light rounded-3 p-3 mb-3">
+            <div class="mb-2">
+                <label class="text-muted small fw-semibold text-uppercase d-block">Identifiant Unique</label>
+                <span class="fw-bold text-dark" id="drawerId">#---</span>
+            </div>
+            <div class="mb-2">
+                <label class="text-muted small fw-semibold text-uppercase d-block">Spécialité Clinique</label>
+                <span class="fw-medium text-dark" id="drawerSpecialite">Généraliste</span>
+            </div>
+            <div>
+                <label class="text-muted small fw-semibold text-uppercase d-block">Adresse Email Professionnelle</label>
+                <span class="fw-medium text-dark" id="drawerEmail">email@example.com</span>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 mt-4">
+            <a href="#" id="drawerBtnDossier" class="btn btn-primary rounded-pill py-2 fw-medium">
+                <i class="fas fa-folder-open me-2"></i>Ouvrir le Dossier Praticien
+            </a>
+            <button type="button" class="btn btn-outline-secondary rounded-pill py-2" data-bs-dismiss="offcanvas">
+                Fermer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Inviter Personnel -->
+<div class="modal fade" id="modalInviterPersonnel" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark"><i class="fas fa-user-plus text-primary me-2"></i>Inviter un nouveau soignant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.ajouter_personnel') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="alert alert-light border rounded-3 p-3 mb-3 d-flex align-items-start gap-2 text-muted small">
+                        <i class="fas fa-paper-plane text-primary mt-0.5"></i>
+                        <div>
+                            <strong class="text-dark d-block">Création d'un nouveau compte soignant</strong>
+                            Le praticien recevra automatiquement un email d'invitation avec un lien sécurisé lui permettant d'activer son compte et de choisir son propre mot de passe.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Type de compte</label>
+                        <select name="type_personnel" id="selectTypePerso" class="form-select rounded-3" onchange="toggleSpecialite(this.value)" required>
+                            <option value="medecin">Médecin</option>
+                            <option value="infirmier">Infirmier(ère)</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted text-uppercase">Prénom</label>
+                            <input type="text" name="prenom" class="form-control rounded-3" placeholder="ex: Karim" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted text-uppercase">Nom</label>
+                            <input type="text" name="nom" class="form-control rounded-3" placeholder="ex: Amrani" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Adresse email du soignant</label>
+                        <input type="email" name="email" class="form-control rounded-3" placeholder="ex: nouveau.soignant@gmail.com" required>
+                        <div class="form-text text-muted" style="font-size: 0.76rem;">
+                            <i class="fas fa-info-circle me-1"></i>L'email d'activation avec le lien sécurisé sera directement expédié à cette adresse.
+                        </div>
+                    </div>
+                    <div class="mb-3" id="groupSpecialite">
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Spécialité Clinique</label>
+                        <select name="id_specialite" class="form-select rounded-3">
+                            {% for s in specialites %}
+                            <option value="{{ s.id_specialite }}">{{ s.nom_specialite }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Envoyer l'invitation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+function inspecterLignePersonnel(row, event) {
+    if (event.target.closest('button') || event.target.closest('a') || event.target.closest('.dropdown')) {
+        return;
+    }
+    const d = row.dataset;
+    document.getElementById('drawerNomPrenom').innerText = d.prenom + ' ' + d.nom;
+    document.getElementById('drawerId').innerText = '#' + d.type.toUpperCase() + '-' + d.id;
+    document.getElementById('drawerRole').innerText = d.role;
+    document.getElementById('drawerRole').className = 'badge ' + (d.type === 'medecin' ? 'bg-primary' : 'bg-info');
+    document.getElementById('drawerStatut').innerText = d.statut;
+    document.getElementById('drawerSpecialite').innerText = d.specialite;
+    document.getElementById('drawerEmail').innerText = d.email;
+    document.getElementById('drawerBtnDossier').href = d.detailUrl;
+
+    const initials = (d.prenom ? d.prenom[0] : '') + (d.nom ? d.nom[0] : '');
+    const avatar = document.getElementById('drawerAvatar');
+    avatar.innerText = initials.toUpperCase();
+    avatar.style.background = (d.type === 'medecin') ? '#10AC84' : '#0ea5e9';
+
+    const bsOffcanvas = new bootstrap.Offcanvas(document.getElementById('drawerPersonnelDetail'));
+    bsOffcanvas.show();
+}
+
+function toggleSpecialite(val) {
+    const group = document.getElementById('groupSpecialite');
+    if (val === 'infirmier') {
+        group.style.display = 'none';
+    } else {
+        group.style.display = 'block';
+    }
+}
+</script>
+{% endblock %}
+

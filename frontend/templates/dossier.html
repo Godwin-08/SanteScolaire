@@ -1,76 +1,188 @@
 {% extends "base.html" %}
 
-{% block title %}Dossier : {{ eleve.nom_eleve }} {{ eleve.prenom_eleve }} - SanteScolaire{% endblock %}
+{% block title %}Dossier Médical : {{ eleve.nom_eleve }} {{ eleve.prenom_eleve }} - SanteScolaire{% endblock %}
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dossier.css') }}">
 <style>
-    /* Mode "Confort Visuel" : Adoucissement des fonds blancs */
-    body {
-        background-color: #eef2f6 !important; /* Gris-bleu très doux */
+    .pai-banner {
+        background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+        border: 2px solid #fecdd3;
+        border-radius: 18px;
+        padding: 1.5rem;
     }
-    .card, .bg-white, .list-group-item {
-        background-color: #fafafa !important; /* Blanc cassé (moins éblouissant) */
+    .badge-sev-critique {
+        background: #fee2e2;
+        color: #991b1b;
+        font-weight: 700;
     }
-    .bg-light {
-        background-color: #e9ecef !important; /* Gris un peu plus soutenu pour le contraste */
+    .badge-sev-moyenne {
+        background: #fef3c7;
+        color: #92400e;
+        font-weight: 600;
     }
-    .timeline-dot {
-        border-color: #eef2f6 !important; /* Fusion avec le fond de page */
+    .badge-sev-faible {
+        background: #e0f2fe;
+        color: #075985;
+        font-weight: 600;
+    }
+    .antecedent-card {
+        border-radius: 14px;
+        border: 1px solid rgba(0,0,0,0.06);
+        background: #ffffff;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        transition: transform 0.2s ease;
+    }
+    .antecedent-card:hover {
+        transform: translateY(-2px);
     }
 </style>
 {% endblock %}
+{% block page_title %}Dossier Médical Confidentiel{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('eleves.index') }}" class="text-decoration-none text-muted">Élèves &amp; Dossiers</a></li>
+<li class="breadcrumb-item active text-dark fw-medium" aria-current="page">{{ eleve.nom_eleve }} {{ eleve.prenom_eleve }}</li>
+{% endblock %}
+
+{% block topbar_actions %}
+<div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('eleves.index') }}" class="btn btn-sm btn-white border rounded-pill px-3 shadow-xs text-secondary d-flex align-items-center gap-2" style="height: 38px; font-size: 0.82rem;">
+        <i class="fas fa-arrow-left text-muted"></i>
+        <span>Liste Patients</span>
+    </a>
+</div>
+{% endblock %}
 
 {% block content %}
-<div class="container py-4 animate__animated animate__fadeIn">
-    <!-- En-tête d'impression (Visible uniquement sur papier) -->
+<div class="w-100 animate__animated animate__fadeIn">
+    <!-- En-tête d'impression officiel (Visible uniquement sur papier / PDF) -->
     <div class="print-only mb-4">
-        <div class="d-flex align-items-center border-bottom pb-3 mb-3">
-            <div class="brand-logo me-3">
-                <i class="fas fa-heartbeat"></i>
+        <div class="d-flex align-items-center justify-content-between pb-3 border-bottom border-2 border-success">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width: 44px; height: 44px; border-radius: 10px; background: #10ac84; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem;">
+                    <i class="fas fa-heart-pulse"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold text-dark mb-0" style="font-size: 1.25rem; letter-spacing: -0.3px;">Sante<span style="color: #10ac84;">Scolaire</span></h3>
+                    <small class="text-secondary fw-semibold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.08em;">Service Médical &amp; Santé Scolaire</small>
+                </div>
             </div>
-            <div>
-                <h3 class="fw-bold text-primary mb-0">SanteScolaire</h3>
-                <p class="text-muted small mb-0">Dossier Médical Élève</p>
+            <div class="text-end">
+                <span class="badge bg-danger text-white px-2 py-1 small fw-bold text-uppercase" style="font-size: 0.65rem;">Secret Médical &middot; Confidentiel</span>
+                <div class="small text-muted mt-1" style="font-size: 0.72rem;">Édité le {{ eleve.date_edition|default('ce jour') }} par {{ session.username }}</div>
             </div>
         </div>
     </div>
 
-    <!-- En-tête : Carte d'identité de l'élève et bouton d'action -->
+    <!-- En-tête : Fiche d'identité de l'élève et Actions -->
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
-                <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div class="d-flex align-items-center">
-                        <div class="avatar-circle me-3 {{ 'bg-male' if eleve.sexe == 'M' else 'bg-female' }} shadow">
-                            <i class="fas {{ 'fa-user-tie' if eleve.sexe == 'M' else 'fa-user-nurse' }} text-white"></i>
+                        <div class="avatar-circle me-3 {{ 'bg-male' if eleve.sexe == 'M' else 'bg-female' }} shadow-sm" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            <i class="fas {{ 'fa-user-graduate' if eleve.sexe == 'M' else 'fa-user-graduate' }} text-white"></i>
                         </div>
                         <div>
-                            <h2 class="fw-bold mb-0 text-dark">{{ eleve.nom_eleve }} {{ eleve.prenom_eleve }}</h2>
-                            <span class="badge bg-soft-primary text-primary px-3">Classe : {{ eleve.classe }}</span>
-                            <span class="text-muted ms-3 small"><i class="fas fa-fingerprint"></i> ID #{{ eleve.id_eleve }}</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <h2 class="fw-bold mb-0 text-dark">{{ eleve.nom_eleve }} {{ eleve.prenom_eleve }}</h2>
+                                {% if pai_actif %}
+                                <span class="badge bg-danger text-white rounded-pill px-3 py-1 fw-bold">
+                                    <i class="fas fa-triangle-exclamation me-1"></i> PAI ACTIF
+                                </span>
+                                {% endif %}
+                                {% if session.user_role == 'medecin' %}
+                                    {% if medecin_a_suivi %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1 fw-semibold small">
+                                        <i class="fas fa-user-check me-1"></i> Patient suivi par vous
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 rounded-pill px-3 py-1 fw-semibold small">
+                                        <i class="fas fa-user-clock me-1"></i> Nouveau patient pour vous
+                                    </span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            <div class="mt-1">
+                                <span class="badge bg-soft-primary text-primary px-3 py-1">Classe : {{ eleve.classe }}</span>
+                                <span class="text-muted ms-3 small"><i class="fas fa-fingerprint me-1"></i> ID #{{ eleve.id_eleve }}</span>
+                                <span class="text-muted ms-3 small"><i class="fas fa-venus-mars me-1"></i> {{ 'Masculin' if eleve.sexe == 'M' else 'Féminin' }}</span>
+                            </div>
                         </div>
                     </div>
                     {% if session.user_role in ['medecin', 'infirmier'] %}
-                    <a href="{{ url_for('consultations.nouvelle_visite', id_eleve=eleve.id_eleve) }}" class="btn btn-primary btn-pro rounded-pill shadow">
-                        <i class="fas fa-plus me-2"></i>Nouvelle Consultation
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('consultations.nouvelle_visite', id_eleve=eleve.id_eleve) }}" class="btn btn-primary rounded-pill shadow-sm px-4 text-white">
+                            <i class="fas fa-plus me-2"></i>Nouvelle Consultation
+                        </a>
+                        <button id="printBtn" class="btn btn-outline-secondary rounded-pill px-3">
+                            <i class="fas fa-print me-1"></i>Imprimer
+                        </button>
+                    </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Bannière Spéciale Protocole PAI (si l'élève a un PAI ou antécédent critique) -->
+    {% if pai_actif %}
+    <div class="pai-banner shadow-sm mb-4">
+        <div class="d-flex align-items-start">
+            <div class="p-3 bg-danger bg-opacity-10 text-danger rounded-circle me-3 fs-3">
+                <i class="fas fa-shield-heart"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h5 class="fw-bold text-danger mb-0">Protocole d'Accueil Individualisé (PAI) &middot; Vigilance Médicale Active</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{{ url_for('eleves.telecharger_pai_pdf', id_eleve=eleve.id_eleve) }}" class="btn btn-sm btn-danger rounded-pill px-3 shadow-xs fw-semibold">
+                            <i class="fas fa-file-pdf me-1"></i> Fiche d'Urgence PAI (PDF)
+                        </a>
+                        <span class="badge bg-danger text-white rounded-pill px-3 py-1">Priorité Absolue</span>
+                    </div>
+                </div>
+                <p class="text-dark mb-2">Cet élève fait l'objet d'un suivi particulier en raison d'une pathologie chronique ou d'une allergie sévère.</p>
+                <div class="row g-2 mt-1">
+                    {% for ant in antecedents %}
+                        {% if ant.pai_signe or ant.severite == 'Critique' %}
+                        <div class="col-md-6">
+                            <div class="bg-white p-3 rounded-3 border border-danger border-opacity-25 shadow-xs">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong class="text-dark">{{ ant.type }}</strong>
+                                    <span class="badge badge-sev-critique rounded-pill px-2 py-1">{{ ant.severite }}</span>
+                                </div>
+                                <div class="small text-muted mb-2">{{ ant.description }}</div>
+                                {% if ant.conduite_a_tenir %}
+                                <div class="p-2 bg-danger bg-opacity-10 text-danger rounded-2 small fw-semibold">
+                                    <i class="fas fa-ambulance me-1"></i> <strong>Conduite d'urgence :</strong> {{ ant.conduite_a_tenir }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row">
-        <!-- Colonne Gauche (Principale) : Historique médical -->
-        <div class="col-md-8">
+        <!-- Colonne Gauche (Principale) : Historique médical & Timeline -->
+        <div class="col-lg-8">
             
-            <!-- Graphique d'évolution de l'IMC (si données disponibles) -->
+            <!-- Graphique d'évolution de l'IMC -->
             {% if imc_values %}
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold text-primary mb-3"><i class="fas fa-chart-line me-2"></i>Suivi Corpulence (IMC)</h5>
-                    <div style="height: 250px;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-primary mb-0"><i class="fas fa-chart-line me-2"></i>Suivi Corpulence & Croissance (IMC)</h5>
+                        <span class="badge bg-soft-primary text-primary rounded-pill px-3">Courbe clinique</span>
+                    </div>
+                    <div style="height: 230px;">
                         <canvas id="imcChart"></canvas>
                     </div>
                 </div>
@@ -78,16 +190,19 @@
             {% endif %}
 
             <!-- Timeline des consultations -->
-            <h4 class="fw-bold mb-4 text-secondary"><i class="fas fa-notes-medical me-2"></i>Parcours de Santé</h4>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold mb-0 text-dark"><i class="fas fa-notes-medical me-2 text-primary"></i>Parcours de Soins & Visites</h4>
+                <span class="badge bg-light text-muted border">{{ consultations|length }} consultation(s)</span>
+            </div>
+
             <div class="position-relative ps-4 border-start border-2 ms-3">
                 {% if consultations %}
-                    <!-- Boucle Jinja pour afficher chaque consultation -->
                     {% for c in consultations %}
-                    <div class="mb-5 position-relative">
+                    <div class="mb-4 position-relative">
                         <!-- Point sur la timeline -->
                         <div class="position-absolute bg-primary rounded-circle shadow-sm timeline-dot" style="width: 16px; height: 16px; left: -33px; top: 0; border: 3px solid white;"></div>
                         
-                        <div class="card border-0 shadow-sm rounded-4 hover-lift">
+                        <div class="card border-0 shadow-sm rounded-4 bg-white">
                             <div class="card-body p-4">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <div>
@@ -113,12 +228,10 @@
                                     </div>
                                     <div class="d-flex align-items-center">
                                         <span class="badge bg-light text-dark border me-2"><i class="far fa-calendar-alt me-1"></i>{{ c.date_consult }}</span>
-                                        {% if session.user_role == 'medecin' %}
-                                        <form action="{{ url_for('consultations.supprimer_consultation', id_consult=c.id_consult) }}" method="POST" onsubmit="return confirm('Voulez-vous vraiment supprimer cette consultation ?');" class="m-0">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle shadow-sm" title="Supprimer la consultation">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </form>
+                                        {% if session.user_role == 'medecin' and c.id_medecin == session.user_id %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle shadow-sm" title="Supprimer ma consultation" onclick="ouvrirModalSuppression({{ c.id_consult }}, '{{ c.motif|replace('\'', '\\\'') }}')">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -129,7 +242,17 @@
 
                                 <!-- Section Ordonnance liée à la consultation -->
                                 <div class="border-top pt-3">
-                                    <h6 class="small fw-bold text-uppercase text-primary mb-2"><i class="fas fa-pills me-2"></i>Ordonnance</h6>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="small fw-bold text-uppercase text-primary mb-0"><i class="fas fa-pills me-2"></i>Prescriptions &amp; Traitement</h6>
+                                        <div class="d-flex gap-1">
+                                            <a href="{{ url_for('consultations.telecharger_ordonnance_pdf', id_consult=c.id_consult) }}" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0.5 shadow-xs fw-semibold" style="font-size: 0.70rem;" title="Télécharger l'ordonnance en PDF">
+                                                <i class="fas fa-file-pdf me-1"></i> PDF
+                                            </a>
+                                            <a href="{{ url_for('consultations.afficher_ordonnance', id_consult=c.id_consult) }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0.5 shadow-xs fw-semibold" style="font-size: 0.70rem;" title="Ouvrir l'ordonnance médicale officielle à imprimer">
+                                                <i class="fas fa-print me-1"></i> Imprimer
+                                            </a>
+                                        </div>
+                                    </div>
                                     <div class="row g-2">
                                         {% set count = namespace(value=0) %}
                                         {% for p in prescriptions %}
@@ -152,38 +275,191 @@
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-center py-5">
-                        <p class="text-muted">Aucun antécédent médical enregistré.</p>
+                    <div class="text-center py-5 card bg-white border-0 shadow-sm rounded-4">
+                        <i class="fas fa-clipboard-check fa-3x text-muted opacity-50 mb-3"></i>
+                        <p class="text-muted fw-semibold mb-0">Aucune consultation enregistrée pour le moment.</p>
+                        <small class="text-muted">Utilisez le bouton "Nouvelle Consultation" pour ouvrir une fiche clinique.</small>
                     </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Colonne Droite (Latérale) : Infos fixes et RDV -->
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 sticky-top" style="top: 20px;">
-                <h5 class="fw-bold mb-3">Informations Vitales</h5>
-                <hr>
-                <div class="mb-3">
-                    <label class="small text-muted d-block">GENRE</label>
-                    <span class="fw-bold">{{ 'Masculin' if eleve.sexe == 'M' else 'Féminin' }}</span>
-                </div>
-                <div class="mb-3">
-                    <label class="small text-muted d-block">DATE DE NAISSANCE</label>
-                    <span class="fw-bold">{{ eleve.date_naissance }}</span>
-                </div>
-                <div class="mb-0">
-                    <label class="small text-muted d-block">STATUT DU DOSSIER</label>
-                    <span class="badge bg-success">Actif / Confidentiel</span>
+        <!-- Colonne Droite (Latérale) : Antécédents & Infos Vitales -->
+        <div class="col-lg-4">
+            
+            <!-- Section Antécédents Médicaux Complets -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-notes-medical text-primary me-2"></i>Antécédents & Allergies</h5>
+                    <span class="badge bg-light text-muted border">{{ antecedents|length }}</span>
                 </div>
                 
-                <div class="mt-4 pt-3 border-top">
-                    <button id="printBtn" class="btn btn-outline-dark btn-sm w-100 rounded-pill">
-                        <i class="fas fa-print me-2"></i>Imprimer le dossier
-                    </button>
+                {% if antecedents %}
+                    {% for a in antecedents %}
+                    <div class="antecedent-card">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="fw-bold text-dark">{{ a.type }}</span>
+                            <span class="badge {% if a.severite == 'Critique' %}badge-sev-critique{% elif a.severite == 'Moyenne' %}badge-sev-moyenne{% else %}badge-sev-faible{% endif %} rounded-pill px-2 py-1">
+                                {{ a.severite }}
+                            </span>
+                        </div>
+                        <p class="small text-muted mb-2">{{ a.description }}</p>
+                        {% if a.conduite_a_tenir %}
+                        <div class="p-2 bg-light rounded small text-dark border-start border-3 {% if a.severite == 'Critique' %}border-danger{% else %}border-primary{% endif %}">
+                            <strong>Protocole :</strong> {{ a.conduite_a_tenir }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted small mb-0 fst-italic">Aucun antécédent médical ou allergie déclaré.</p>
+                {% endif %}
+            </div>
+
+            <!-- Carte Informations Vitales -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white sticky-top" style="top: 20px;">
+                <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-id-card text-primary me-2"></i>Informations Vitales</h5>
+                <hr class="my-2">
+                <div class="mb-3">
+                    <label class="small text-muted d-block text-uppercase fw-bold">Date de Naissance</label>
+                    <span class="fw-bold text-dark">{{ eleve.date_naissance }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="small text-muted d-block text-uppercase fw-bold">Genre</label>
+                    <span class="fw-bold text-dark">{{ 'Masculin' if eleve.sexe == 'M' else 'Féminin' }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="small text-muted d-block text-uppercase fw-bold">Classe / Filière</label>
+                    <span class="badge bg-light text-dark border fs-6 px-3 py-1">{{ eleve.classe }}</span>
+                </div>
+                <div class="mb-0">
+                    <label class="small text-muted d-block text-uppercase fw-bold">Confidentialité</label>
+                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1">Secret Médical Respecté</span>
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         PAGE / SECTION OFFICIELLE : ÉMARGEMENT & SIGNATURES MÉDICO-LÉGALES
+         (Visible à l'écran et mise en page optimisée pour l'impression / PDF)
+         ========================================================================== -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white dossier-signatures-block" style="page-break-inside: avoid; break-inside: avoid;">
+        <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3">
+                    <i class="fas fa-file-signature fs-5"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark">Visas, Approbations &amp; Signatures Légales</h5>
+                    <small class="text-muted">Document officiel valant attestation de suivi médical scolaire &middot; Année scolaire en cours</small>
+                </div>
+            </div>
+            <span class="badge bg-light text-secondary border px-3 py-1 rounded-pill small">
+                Réf: DOS-{{ eleve.id_eleve }}-{{ eleve.classe|replace(' ', '') }}
+            </span>
+        </div>
+
+        <div class="p-3 bg-light rounded-3 mb-3 small text-secondary">
+            <i class="fas fa-shield-alt text-primary me-1"></i>
+            <strong>Attestation médico-légale :</strong> Les renseignements ci-dessus consignés dans le dossier médical de l'élève <strong>{{ eleve.nom_eleve }} {{ eleve.prenom_eleve }}</strong> 
+            font foi pour la continuité des soins, les dispenses d'activité physique, les aménagements d'examens et la mise en œuvre éventuelle du Protocole d'Accueil Individualisé (PAI).
+        </div>
+
+        <div class="row g-3">
+            <!-- 1. Signature du Médecin Référent -->
+            <div class="col-md-4">
+                <div class="p-3 rounded-3 border bg-white h-100 d-flex flex-column justify-content-between" style="border-color: #cbd5e1 !important; min-height: 190px;">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-2 py-1" style="font-size: 0.72rem;">LE MÉDECIN TRAITANT</span>
+                            <i class="fas fa-user-doctor text-primary opacity-50"></i>
+                        </div>
+                        <div class="small fw-semibold text-dark">Dr. {{ session.username if session.user_role == 'medecin' else 'Médecin Scolaire' }}</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">Visa médical &amp; Prescriptions</div>
+                    </div>
+                    <div class="border-top pt-2 mt-3" style="border-style: dashed !important;">
+                        <div class="text-muted small" style="font-size: 0.68rem;">Date : _____ / _____ / 202___</div>
+                        <div class="text-muted small mt-1" style="font-size: 0.68rem;">Signature &amp; Cachet :</div>
+                        <div style="height: 55px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Signature de la Direction de l'Établissement -->
+            <div class="col-md-4">
+                <div class="p-3 rounded-3 border bg-white h-100 d-flex flex-column justify-content-between" style="border-color: #cbd5e1 !important; min-height: 190px;">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-dark bg-opacity-10 text-dark fw-bold px-2 py-1" style="font-size: 0.72rem;">DIRECTION DE L'ÉCOLE</span>
+                            <i class="fas fa-school text-dark opacity-50"></i>
+                        </div>
+                        <div class="small fw-semibold text-dark">Chef d'Établissement / Proviseur</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">Accord d'application &middot; Administration</div>
+                    </div>
+                    <div class="border-top pt-2 mt-3" style="border-style: dashed !important;">
+                        <div class="text-muted small" style="font-size: 0.68rem;">Date : _____ / _____ / 202___</div>
+                        <div class="text-muted small mt-1" style="font-size: 0.68rem;">Sceau &amp; Signature :</div>
+                        <div style="height: 55px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Signature des Parents / Représentant Légal -->
+            <div class="col-md-4">
+                <div class="p-3 rounded-3 border bg-white h-100 d-flex flex-column justify-content-between" style="border-color: #cbd5e1 !important; min-height: 190px;">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1" style="font-size: 0.72rem;">PARENTS / TUTEUR</span>
+                            <i class="fas fa-signature text-success opacity-50"></i>
+                        </div>
+                        <div class="small fw-semibold text-dark">Représentant Légal de l'Élève</div>
+                        <div class="text-muted" style="font-size: 0.7rem;">Mention « Lu et Approuvé »</div>
+                    </div>
+                    <div class="border-top pt-2 mt-3" style="border-style: dashed !important;">
+                        <div class="text-muted small" style="font-size: 0.68rem;">Date : _____ / _____ / 202___</div>
+                        <div class="text-muted small mt-1" style="font-size: 0.68rem;">Signature du tuteur :</div>
+                        <div style="height: 55px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-3 pt-2 border-top text-muted" style="font-size: 0.68rem;">
+            Document confidentiel protégé par le secret professionnel et le code de la santé publique. Émis via la plateforme numérique SanteScolaire Pro.
+        </div>
+    </div>
+</div>
+
+<!-- Modale de Confirmation de Suppression (Modern UX au lieu du confirm() natif) -->
+<div class="modal fade" id="modalSupprimerConsultation" tabindex="-1" aria-labelledby="modalSupprLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger" id="modalSupprLabel">
+                    <i class="fas fa-triangle-exclamation me-2"></i>Confirmation de Suppression
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="text-dark mb-2">Êtes-vous sûr de vouloir supprimer cette consultation ?</p>
+                <div class="p-3 bg-light rounded-3">
+                    <span class="small text-muted d-block">Motif :</span>
+                    <strong class="text-dark" id="modalMotifConsultation"></strong>
+                </div>
+                <small class="text-danger mt-2 d-block">
+                    <i class="fas fa-info-circle me-1"></i> Cette action est irréversible et supprimera également les ordonnances associées.
+                </small>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+                <form id="formSuppressionConsultation" method="POST" action="">
+                    <button type="submit" class="btn btn-danger rounded-pill px-4 text-white shadow-sm">
+                        <i class="fas fa-trash-alt me-1"></i> Confirmer la suppression
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -193,7 +469,6 @@
      data-labels='{{ imc_labels | tojson | safe }}' 
      data-values='{{ imc_values | tojson | safe }}'>
 </div>
-
 {% endblock %}
 
 {% block js %}
@@ -203,40 +478,54 @@
         const dataDiv = document.getElementById('imc-data');
         if(!dataDiv) return;
 
-        const labels = JSON.parse(dataDiv.dataset.labels);
-        const values = JSON.parse(dataDiv.dataset.values);
+        const labels = JSON.parse(dataDiv.dataset.labels || '[]');
+        const values = JSON.parse(dataDiv.dataset.values || '[]');
 
         if(labels.length > 0) {
-            const ctx = document.getElementById('imcChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'IMC',
-                        data: values,
-                        borderColor: '#10ac84',
-                        backgroundColor: 'rgba(16, 172, 132, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        y: { 
-                            beginAtZero: false,
-                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
-                            ticks: { color: '#636e72' }
-                        },
-                        x: { grid: { display: false }, ticks: { color: '#636e72' } }
+            const chartEl = document.getElementById('imcChart');
+            if(chartEl) {
+                const ctx = chartEl.getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'IMC (Indice de Masse Corporelle)',
+                            data: values,
+                            borderColor: '#10ac84',
+                            backgroundColor: 'rgba(16, 172, 132, 0.1)',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#10ac84',
+                            pointRadius: 4,
+                            tension: 0.35,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { 
+                            y: { 
+                                beginAtZero: false,
+                                grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                                ticks: { color: '#636e72' }
+                            },
+                            x: { grid: { display: false }, ticks: { color: '#636e72' } }
+                        }
                     }
-                }
-            });
+                });
+            }
         }
     });
+
+    // Gestion de la modale moderne de suppression
+    function ouvrirModalSuppression(idConsult, motif) {
+        document.getElementById('modalMotifConsultation').textContent = motif;
+        document.getElementById('formSuppressionConsultation').action = '/consultation/supprimer/' + idConsult;
+        const modal = new bootstrap.Modal(document.getElementById('modalSupprimerConsultation'));
+        modal.show();
+    }
 </script>
 <script src="{{ url_for('static', filename='js/dossier.js') }}"></script>
 {% endblock %}

@@ -21,59 +21,93 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     data: pieValues,
                     backgroundColor: [
-                        '#10ac84', '#1dd1a1', '#4a69bd', '#ff6b6b', '#feca57', '#5f27cd'
+                        '#10ac84', '#0984e3', '#6c5ce7', '#fdcb6e', '#e17055', '#00cec9'
                     ],
-                    borderWidth: 4,
-                    borderColor: '#ffffff', // Couleur du fond de la carte pour l'espacement
-                    hoverOffset: 20
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
+                    hoverOffset: 12
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '70%',
+                cutout: '68%',
                 plugins: {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            padding: 20,
+                            padding: 14,
                             usePointStyle: true,
-                            font: { size: 12, weight: '600' }
+                            boxWidth: 8,
+                            font: { size: 11, weight: '600' }
                         }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleFont: { size: 12, weight: '700' },
+                        padding: 10,
+                        cornerRadius: 8
                     }
                 }
             }
         });
     }
 
-    // 2. Graphique de l'activité
-    const jourCtx = document.getElementById('jourChart').getContext('2d');
-    const gradient = jourCtx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, '#1a2a6c');
-    gradient.addColorStop(1, 'rgba(197, 160, 89, 0.2)');
+    // 2. Graphique de l'activité (7 jours réels)
+    const jourCanvas = document.getElementById('jourChart');
+    if (jourCanvas) {
+        const jourCtx = jourCanvas.getContext('2d');
+        const gradient = jourCtx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(16, 172, 132, 0.85)');
+        gradient.addColorStop(1, 'rgba(16, 172, 132, 0.12)');
 
-    new Chart(jourCtx, {
-        type: 'bar',
-        data: {
-            labels: jourLabels,
-            datasets: [{
-                label: 'Consultations',
-                data: jourValues,
-                backgroundColor: gradient,
-                borderRadius: 10,
-                barThickness: 25
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 1 } },
-                x: { grid: { display: false } }
+        new Chart(jourCtx, {
+            type: 'bar',
+            data: {
+                labels: jourLabels,
+                datasets: [{
+                    label: 'Visites / Consultations',
+                    data: jourValues,
+                    backgroundColor: gradient,
+                    borderColor: '#10ac84',
+                    borderWidth: 1.5,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    maxBarThickness: 38
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleFont: { size: 12, weight: '700' },
+                        padding: 10,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                const v = context.parsed.y;
+                                return ` ${v} consultation${v > 1 ? 's' : ''}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0, 0, 0, 0.04)', drawBorder: false },
+                        ticks: { stepSize: 1, precision: 0, font: { weight: '600', size: 11 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { weight: '600', size: 11 } }
+                    }
+                }
             }
-        }
-    });
+        });
+    }
 
     // 3. Gestion de l'impression du rapport (Graphique en barres)
     const printBtn = document.getElementById('printReportBtn');

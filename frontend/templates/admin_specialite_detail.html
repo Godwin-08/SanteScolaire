@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Détails Spécialité — {{ specialite.nom_specialite }}{% endblock %}
+
+{% block css %}
+<style>
+    .card-detail {
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+    .badge-soft-success { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-soft-warning { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-soft-danger  { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .badge-soft-primary { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-100 animate__animated animate__fadeIn">
+
+    <!-- Fil d'Ariane & Bouton Retour -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="{{ url_for('admin.liste_specialites') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
+            <i class="fas fa-arrow-left me-2"></i>Retour aux spécialités
+        </a>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddDoctorForSpe">
+                <i class="fas fa-user-plus me-1"></i>Ajouter un médecin
+            </button>
+            <form action="{{ url_for('admin.supprimer_specialite', id_specialite=specialite.id_specialite) }}" method="POST" class="d-inline" onsubmit="return confirm('Voulez-vous vraiment supprimer cette spécialité ?');">
+                <button type="submit" class="btn btn-outline-danger btn-sm shadow-sm" {% if medecins|length > 0 %}disabled title="Impossible : des médecins y sont rattachés"{% endif %}>
+                    <i class="fas fa-trash-alt me-1"></i>Supprimer
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- En-tête de la Spécialité -->
+    <div class="card card-detail shadow-sm p-4 mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="avatar-lg rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 64px; height: 64px; font-size: 1.5rem; background-color: #0284c7;">
+                    <i class="fas fa-stethoscope"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <h3 class="fw-bold text-dark mb-0">{{ specialite.nom_specialite }}</h3>
+                        <span class="badge bg-light text-dark border font-monospace">{{ specialite.code_specialite or 'SPE' }}</span>
+                    </div>
+                    <p class="text-muted mb-0 small">
+                        {{ specialite.description or "Pôle d'expertise clinique et de suivi spécialisé des apprenants." }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="text-end">
+                <span class="badge {% if medecins|length > 0 %}badge-soft-primary{% else %}badge-soft-warning{% endif %} px-3 py-2 fs-6">
+                    <i class="fas fa-user-doctor me-2"></i>{{ medecins|length }} Médecin(s) affecté(s)
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des Médecins Rattachés à cette Spécialité -->
+    <div class="card card-detail shadow-sm p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0">
+                <i class="fas fa-user-md text-primary me-2"></i>Praticiens Rattachés à ce Pôle
+            </h5>
+            <span class="badge bg-light text-muted border small">{{ medecins|length }} membre(s)</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr class="small text-muted text-uppercase">
+                        <th>Médecin</th>
+                        <th>Email Professionnel</th>
+                        <th>Statut du Compte</th>
+                        <th>Dernier Délai Token</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in medecins %}
+                    <tr class="gtm-interactive-row" onclick="if (!event.target.closest('a, button')) window.location.href = '{{ url_for('admin.personnel_detail', type_perso='medecin', id_perso=m.id_medecin) }}';" style="cursor: pointer;">
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar-sm rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 36px; height: 36px; background-color: #1e3a8a;">
+                                    {{ m.prenom_medecin[0] }}{{ m.nom_medecin[0] }}
+                                </div>
+                                <div>
+                                    <span class="fw-bold text-dark d-block">Dr. {{ m.prenom_medecin }} {{ m.nom_medecin }}</span>
+                                    <small class="text-muted">ID: #{{ m.id_medecin }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="small font-monospace text-dark">{{ m.email }}</span>
+                        </td>
+                        <td>
+                            {% if not m.activation_token_hash %}
+                                <span class="badge badge-soft-success"><i class="fas fa-check-circle me-1"></i>Actif</span>
+                            {% elif m.activation_expires_at and m.activation_expires_at < now %}
+                                <span class="badge badge-soft-danger"><i class="fas fa-exclamation-triangle me-1"></i>Expiré (>48h)</span>
+                            {% else %}
+                                <span class="badge badge-soft-warning"><i class="fas fa-hourglass-half me-1"></i>En attente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="small text-muted">{{ m.activation_expires_at.strftime('%d/%m/%Y %H:%M') if m.activation_expires_at else '-' }}</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('admin.personnel_detail', type_perso='medecin', id_perso=m.id_medecin) }}" class="btn btn-sm btn-outline-primary">
+                                Voir Fiche <i class="fas fa-arrow-right ms-1"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            <i class="fas fa-info-circle me-2"></i>Aucun médecin n'est actuellement rattaché à cette spécialité.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Ajout Médecin avec cette spécialité pré-sélectionnée -->
+<div class="modal fade" id="modalAddDoctorForSpe" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus text-primary me-2"></i>Inviter un Médecin ({{ specialite.nom_specialite }})</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.ajouter_personnel') }}" method="POST">
+                <input type="hidden" name="type" value="medecin">
+                <input type="hidden" name="id_specialite" value="{{ specialite.id_specialite }}">
+                <div class="modal-body">
+                    <div class="alert alert-info border-0 rounded-3 small mb-3">
+                        <i class="fas fa-shield-alt me-2"></i>Le médecin sera invité avec un token cryptographique sécurisé (48h).
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">PRÉNOM</label>
+                            <input type="text" name="prenom" class="form-control" placeholder="Prénom" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">NOM</label>
+                            <input type="text" name="nom" class="form-control" placeholder="Nom" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">EMAIL PROFESSIONNEL (.MA)</label>
+                        <input type="email" name="email" class="form-control" placeholder="dr.prenom.nom@santescolaire.ma">
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-2"></i>Envoyer l'invitation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

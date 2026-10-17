@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block page_title %}Gestion Globale des Rendez-vous{% endblock %}
+
+{% block content %}
+<div class="w-100">
+    <!-- Top Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Total Rendez-vous</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ total_rdv }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-calendar-check fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">À Venir / Programmés</div>
+                        <div class="fs-4 fw-bold text-primary mt-1">{{ rdv_a_venir }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-clock fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Prévus Aujourd'hui</div>
+                        <div class="fs-4 fw-bold text-success mt-1">{{ rdv_aujourd_hui }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-success bg-opacity-10 text-success">
+                        <i class="fas fa-calendar-day fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-3">
+        <form method="GET" action="{{ url_for('admin.liste_rdv') }}" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control bg-light border-0" placeholder="Rechercher patient..." value="{{ search_q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="statut" class="form-select bg-light border-0">
+                    <option value="" {% if not statut_filter %}selected{% endif %}>Tous les statuts</option>
+                    <option value="programmé" {% if statut_filter == 'programmé' %}selected{% endif %}>Programmé</option>
+                    <option value="fait" {% if statut_filter == 'fait' %}selected{% endif %}>Fait</option>
+                    <option value="annulé" {% if statut_filter == 'annulé' %}selected{% endif %}>Annulé</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="date_filter" class="form-select bg-light border-0">
+                    <option value="" {% if not date_filter %}selected{% endif %}>Toutes les dates</option>
+                    <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Aujourd'hui</option>
+                    <option value="upcoming" {% if date_filter == 'upcoming' %}selected{% endif %}>Futurs uniquement</option>
+                    <option value="week" {% if date_filter == 'week' %}selected{% endif %}>Cette semaine</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="medecin" class="form-select bg-light border-0">
+                    <option value="">Tous médecins</option>
+                    {% for m in medecins %}
+                    <option value="{{ m.id_medecin }}" {% if medecin_filter == m.id_medecin|string %}selected{% endif %}>Dr. {{ m.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter"></i></button>
+                {% if search_q or statut_filter or date_filter or medecin_filter %}
+                <a href="{{ url_for('admin.liste_rdv') }}" class="btn btn-light" title="Réinitialiser"><i class="fas fa-xmark"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- RDV Table (GTM Style) -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center p-3">
+            <span class="fw-bold text-dark"><i class="fas fa-calendar-days me-2 text-primary"></i>Planning Médical</span>
+            <span class="badge bg-light text-muted border">{{ rdvs|length }} créneau(x)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table gtm-table align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4">Date &amp; Heure</th>
+                        <th>Élève / Patient</th>
+                        <th>Praticien Assigné</th>
+                        <th>Statut Créneau</th>
+                        <th class="text-end pe-4">Dossier</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rdvs %}
+                    <tr class="gtm-interactive-row" onclick="window.location.href='{{ url_for('eleves.dossier', id_eleve=r.id_eleve) }}'">
+                        <td class="ps-4 py-3">
+                            <div class="fw-bold text-dark">
+                                {{ r.date_rdv.strftime('%d/%m/%Y') if r.date_rdv else '—' }}
+                            </div>
+                            <small class="text-muted">
+                                <i class="far fa-clock me-1"></i>{{ r.date_rdv.strftime('%H:%M') if r.date_rdv else '' }}
+                            </small>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ r.prenom_eleve }} {{ r.nom_eleve }}</div>
+                            <span class="badge bg-light text-muted border">{{ r.classe or 'Sans classe' }}</span>
+                        </td>
+                        <td>
+                            <div class="text-dark fw-medium">
+                                <i class="fas fa-user-doctor me-1 text-primary opacity-50"></i>
+                                Dr. {{ r.nom_medecin or 'Praticien' }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if r.statut == 'programmé' %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                <i class="fas fa-clock me-1"></i>Programmé
+                            </span>
+                            {% elif r.statut == 'fait' %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                                <i class="fas fa-check-double me-1"></i>Honoré / Fait
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">
+                                <i class="fas fa-xmark me-1"></i>{{ r.statut or 'Annulé' }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4" onclick="event.stopPropagation()">
+                            <a href="{{ url_for('eleves.dossier', id_eleve=r.id_eleve) }}" class="btn btn-sm btn-light text-primary rounded-circle" title="Voir dossier de l'élève" style="width:32px; height:32px; padding:4px;">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="fas fa-calendar-xmark fs-1 d-block mb-3 opacity-25"></i>
+                            Aucun rendez-vous ne correspond aux critères choisis.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

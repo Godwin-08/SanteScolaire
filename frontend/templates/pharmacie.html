@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}Pharmacie &amp; Stocks - SanteScolaire{% endblock %}
+
+{% block page_title %}Pharmacie Scolaire &amp; Gestion des Stocks{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.dashboard') }}" class="text-decoration-none text-muted">Accueil</a></li>
+<li class="breadcrumb-item active text-dark fw-medium" aria-current="page">Pharmacie &amp; Stocks</li>
+{% endblock %}
+
+{% block topbar_actions %}
+<div class="d-flex align-items-center gap-2">
+    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-xs text-white d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalNouveauMedicament">
+        <i class="fas fa-plus"></i>
+        <span>Nouveau Médicament</span>
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="w-100 animate__animated animate__fadeIn">
+
+    <!-- Bannière d'alerte si rupture critique -->
+    {% if nb_critiques > 0 %}
+    <div class="alert bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-4 d-flex align-items-center mb-4 p-3 shadow-xs" role="alert">
+        <div class="me-3 fs-3 text-danger">
+            <i class="fas fa-triangle-exclamation"></i>
+        </div>
+        <div class="flex-grow-1">
+            <h6 class="fw-bold mb-0.5 text-danger">Attention : Seuil de sécurité franchi</h6>
+            <div class="small text-dark">
+                Il y a actuellement <strong>{{ nb_critiques }} référence(s)</strong> en rupture ou en dessous du seuil de réapprovisionnement à l'infirmerie.
+            </div>
+        </div>
+        <a href="{{ url_for('dashboard.pharmacie', statut='critique') }}" class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold">
+            Voir les urgences
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Cartes KPI Pharmacie -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Références Totales</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ total_medicaments }}</div>
+                        <small class="text-muted" style="font-size: 0.72rem;">Armoire à pharmacie</small>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-pills fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Alertes Stock Bas</div>
+                        <div class="fs-4 fw-bold {% if nb_critiques > 0 %}text-danger{% else %}text-muted{% endif %} mt-1">{{ nb_critiques }}</div>
+                        <small class="text-muted" style="font-size: 0.72rem;">Sous le seuil d'alerte</small>
+                    </div>
+                    <div class="rounded-circle p-3 bg-danger bg-opacity-10 text-danger">
+                        <i class="fas fa-triangle-exclamation fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Stocks Confortables</div>
+                        <div class="fs-4 fw-bold text-success mt-1">{{ nb_ok }}</div>
+                        <small class="text-muted" style="font-size: 0.72rem;">Quantité suffisante</small>
+                    </div>
+                    <div class="rounded-circle p-3 bg-success bg-opacity-10 text-success">
+                        <i class="fas fa-circle-check fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Unités en Réserve</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ total_unites }}</div>
+                        <small class="text-muted" style="font-size: 0.72rem;">Total boîtes &amp; doses</small>
+                    </div>
+                    <div class="rounded-circle p-3 bg-info bg-opacity-10 text-info">
+                        <i class="fas fa-boxes-stacked fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barre de Recherche & Filtres -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-3">
+        <form method="GET" action="{{ url_for('dashboard.pharmacie') }}" class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" id="inputSearchClient" class="form-control bg-light border-0" 
+                           placeholder="Rechercher par nom (ex: Ventoline, Spasfon, Paracétamol)..." value="{{ search_q }}" oninput="filtrerTableClient(this.value)">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="statut" class="form-select bg-light border-0" onchange="this.form.submit()">
+                    <option value="" {% if not statut_filter %}selected{% endif %}>Tous les états de stock</option>
+                    <option value="critique" {% if statut_filter == 'critique' %}selected{% endif %}>Critique (sous seuil)</option>
+                    <option value="ok" {% if statut_filter == 'ok' %}selected{% endif %}>Confortable (suffisant)</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary rounded-pill px-3 w-100"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                {% if search_q or statut_filter %}
+                <a href="{{ url_for('dashboard.pharmacie') }}" class="btn btn-light rounded-pill px-3" title="Réinitialiser"><i class="fas fa-times"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Complète des Stocks -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="tableStocks">
+                <thead class="table-light small text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                    <tr>
+                        <th class="ps-4">Médicament</th>
+                        <th>Forme</th>
+                        <th class="text-center">Quantité actuelle</th>
+                        <th class="text-center">Seuil Sécurité</th>
+                        <th style="min-width: 140px;">Niveau de Stock</th>
+                        <th>Statut</th>
+                        <th class="text-center pe-4">Ajustement Rapide</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in stocks %}
+                    {% set pct = (m.quantite_stock / (m.seuil_alerte * 2) * 100)|round|int if m.seuil_alerte else 100 %}
+                    <tr id="stock-row-{{ m.id_medicament }}" class="stock-row-item">
+                        <td class="ps-4">
+                            <span class="fw-bold text-dark fs-6 d-block stock-item-nom">{{ m.nom_medicament }}</span>
+                            <small class="text-muted" style="font-size: 0.72rem;">ID #{{ m.id_medicament }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-muted border px-2.5 py-1 rounded-pill small">{{ m.forme }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="fw-bold fs-5 text-dark" id="stock-qty-{{ m.id_medicament }}">{{ m.quantite_stock }}</span>
+                            <small class="text-muted d-block" style="font-size: 0.72rem;">{{ m.unite_mesure }}</small>
+                        </td>
+                        <td class="text-center text-muted fw-semibold">
+                            {{ m.seuil_alerte }} <small class="text-muted">{{ m.unite_mesure }}</small>
+                        </td>
+                        <td>
+                            <div class="progress" style="height: 6px; border-radius: 4px; background-color: #f1f5f9;">
+                                <div class="progress-bar {% if m.quantite_stock <= m.seuil_alerte %}bg-danger{% else %}bg-success{% endif %}" 
+                                     role="progressbar" style="width: {{ [pct, 100]|min }}%;"></div>
+                            </div>
+                            <small class="text-muted mt-1 d-block" style="font-size: 0.68rem;">
+                                {% if m.quantite_stock <= m.seuil_alerte %}
+                                <span class="text-danger fw-bold"><i class="fas fa-exclamation-circle me-1"></i>Réapprovisionner</span>
+                                {% else %}
+                                <span class="text-success"><i class="fas fa-check-circle me-1"></i>Stock optimal</span>
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td id="stock-badge-{{ m.id_medicament }}">
+                            {% if m.quantite_stock <= m.seuil_alerte %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 fw-bold">
+                                <i class="fas fa-triangle-exclamation me-1"></i> Critique
+                            </span>
+                            {% else %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1 fw-bold">
+                                <i class="fas fa-circle-check me-1"></i> Confortable
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center pe-4" onclick="event.stopPropagation()">
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <button type="button" class="btn btn-sm btn-white border rounded-circle shadow-xs text-danger" style="width: 32px; height: 32px; padding: 0;" onclick="ajusterStock({{ m.id_medicament }}, -1)" title="Consommation / Sortie (-1)">
+                                    <i class="fas fa-minus" style="font-size: 0.72rem;"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-white border rounded-circle shadow-xs text-success" style="width: 32px; height: 32px; padding: 0;" onclick="ajusterStock({{ m.id_medicament }}, 1)" title="Entrée / Réassort (+1)">
+                                    <i class="fas fa-plus" style="font-size: 0.72rem;"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-white border rounded-pill shadow-xs px-2.5 text-primary fw-bold" style="height: 32px; font-size: 0.75rem;" onclick="ajusterStock({{ m.id_medicament }}, 5)" title="Réception de lot (+5)">
+                                    +5
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-pills fa-3x text-muted opacity-25 mb-3 d-block"></i>
+                            <h6 class="fw-bold mb-1">Aucun médicament trouvé</h6>
+                            <p class="small text-muted mb-0">Essayez de modifier vos critères de recherche ou ajoutez un nouveau médicament.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal : Nouveau Médicament dans l'infirmerie -->
+<div class="modal fade" id="modalNouveauMedicament" tabindex="-1" aria-labelledby="modalNouveauMedicamentLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom pb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle p-2 bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                    <h6 class="modal-title fw-bold text-dark mb-0" id="modalNouveauMedicamentLabel">Ajouter un Médicament au Stock</h6>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <form method="POST" action="{{ url_for('dashboard.ajouter_medicament_stock') }}">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">NOM DU MÉDICAMENT / PRODUIT DE SOIN <span class="text-danger">*</span></label>
+                        <input type="text" name="nom_medicament" class="form-control" placeholder="Ex: Cétirizine 10mg, Compresses stériles..." required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">FORME PHARMACEUTIQUE</label>
+                            <input type="text" name="forme" class="form-control" placeholder="Ex: Comprimé, Sirop, Tube...">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">UNITÉ DE MESURE</label>
+                            <input type="text" name="unite_mesure" class="form-control" placeholder="Ex: boîtes, flacons, unités" value="boîtes">
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">QUANTITÉ INITIALE</label>
+                            <input type="number" name="quantite_stock" class="form-control" value="10" min="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">SEUIL D'ALERTE</label>
+                            <input type="number" name="seuil_alerte" class="form-control" value="5" min="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top pt-3">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 text-white fw-semibold">Ajouter au Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+// Ajustement AJAX instantané du stock
+function ajusterStock(medicamentId, delta) {
+    fetch('{{ url_for("dashboard.ajuster_stock") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ id: medicamentId, delta: delta })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Erreur');
+        return response.json();
+    })
+    .then(data => {
+        const qtyEl = document.getElementById('stock-qty-' + data.id);
+        if (qtyEl) {
+            qtyEl.textContent = data.nouvelle_qte;
+            qtyEl.classList.add('animate__animated', 'animate__flash');
+            setTimeout(() => qtyEl.classList.remove('animate__animated', 'animate__flash'), 1000);
+        }
+
+        const badgeEl = document.getElementById('stock-badge-' + data.id);
+        if (badgeEl) {
+            if (data.en_alerte) {
+                badgeEl.innerHTML = '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 fw-bold"><i class="fas fa-triangle-exclamation me-1"></i> Critique</span>';
+            } else {
+                badgeEl.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1 fw-bold"><i class="fas fa-circle-check me-1"></i> Confortable</span>';
+            }
+        }
+    })
+    .catch(err => {
+        console.error('Erreur ajustement stock:', err);
+    });
+}
+
+// Filtrage live côté client
+function filtrerTableClient(query) {
+    const q = (query || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('.stock-row-item');
+    rows.forEach(r => {
+        const nomEl = r.querySelector('.stock-item-nom');
+        if (!nomEl) return;
+        const text = nomEl.textContent.toLowerCase();
+        r.style.display = text.includes(q) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}
+

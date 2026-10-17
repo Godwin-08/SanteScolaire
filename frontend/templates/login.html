@@ -36,24 +36,13 @@
 
                     <!-- Formulaire de connexion -->
                     <form action="{{ url_for('auth.login') }}" method="POST" autocomplete="off" class="needs-validation" novalidate>
-                        <!-- Identifiant avec Floating Label -->
+                        <!-- Email professionnel avec Floating Label -->
                         <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="user_id" name="user_id" placeholder="ID" required pattern="[0-9]+" title="L'identifiant doit être composé uniquement de chiffres.">
-                            <label for="user_id">Identifiant professionnel</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="nom@santescolaire.ma" required>
+                            <label for="email"><i class="bi bi-envelope me-1"></i> Adresse email professionnelle</label>
                             <div class="invalid-feedback text-start ps-2">
-                                Veuillez saisir un identifiant valide (chiffres uniquement).
+                                Veuillez saisir une adresse email valide.
                             </div>
-                        </div>
-
-                        <!-- Sélection du Rôle -->
-                        <div class="form-floating mb-3">
-                            <select class="form-select" id="role" name="role" required>
-                                <option value="" selected disabled>Choisir votre rôle</option>
-                                <option value="admin">Administrateur</option>
-                                <option value="medecin">Médecin</option>
-                                <option value="infirmier">Infirmier</option>
-                            </select>
-                            <label for="role">Rôle / Fonction</label>
                         </div>
 
                         <!-- Mot de passe avec toggle (Utilise .password-toggle de style.css) -->
@@ -70,7 +59,7 @@
                             Se connecter
                         </button>
                         <div class="text-center px-2">
-                            <a class="small text-decoration-none fw-bold" href="{{ url_for('auth.register') }}">Créer un compte</a>
+                            <span class="small text-muted"><i class="fas fa-shield-alt me-1 text-primary"></i>Accès sécurisé &bull; Comptes délivrés par l'administration</span>
                         </div>
                     </form>
                 </div>

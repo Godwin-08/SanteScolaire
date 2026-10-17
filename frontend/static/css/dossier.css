@@ -1,10 +1,127 @@
+/* ==========================================================================
+   STYLES DU DOSSIER PATIENT (ÉCRAN & IMPRESSION MÉDICALE OFFICIELLE)
+   ========================================================================== */
+
 /* Couleurs douces pour les badges */
 .bg-soft-primary { background-color: #eef2ff; color: #4e73df; }
 .hover-lift { transition: transform 0.2s; }
 .hover-lift:hover { transform: translateY(-3px); }
 
-/* Style pour l'impression */
+/* Par défaut à l'écran : masquer l'en-tête spécial impression papier */
+.print-only {
+    display: none !important;
+}
+
+/* ==========================================================================
+   FEUILLE DE STYLE POUR L'IMPRESSION (PDF & PAPIER MÉDICAL)
+   ========================================================================== */
 @media print {
-    .navbar, .btn, .sticky-top { display: none !important; }
-    .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+    /* 1. Masquer toute l'interface applicative (Sidebar, Header, Cloche, Boutons) */
+    .app-sidebar,
+    .app-topbar,
+    .app-sidebar-footer,
+    .gtm-toast-container,
+    .btn,
+    button,
+    .navbar,
+    .sticky-top,
+    .modal,
+    nav[aria-label="breadcrumb"],
+    .dropdown {
+        display: none !important;
+    }
+
+    /* 2. Réinitialiser le Shell applicatif pour une page pleine largeur sans scrollbars */
+    html, body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        font-size: 11pt !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+
+    .app-shell,
+    .app-main,
+    .app-scroll-content,
+    .w-100 {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        transform: none !important;
+        animation: none !important;
+    }
+
+    /* 3. Afficher l'en-tête officiel de santé scolaire */
+    .print-only {
+        display: block !important;
+        margin-bottom: 20px !important;
+        border-bottom: 2px solid #10ac84 !important;
+        padding-bottom: 12px !important;
+    }
+
+    /* 4. Cartes médicales et sections nettes et imprimables */
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        background: #ffffff !important;
+        margin-bottom: 16px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .card-body, .card-header {
+        padding: 12px 16px !important;
+    }
+
+    /* 5. Gérer les couleurs d'arrière-plan pour que le navigateur les imprime bien */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* 6. Optimiser les graphiques et visualisations */
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+        page-break-inside: avoid !important;
+    }
+
+    /* 7. Éviter les coupures de page en plein milieu d'une consultation */
+    .col-lg-8, .col-lg-4, .row {
+        width: 100% !important;
+        margin: 0 !important;
+        display: block !important;
+    }
+
+    .consultation-item {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin-bottom: 14px !important;
+    }
+
+    /* 8. Disposition des signatures en 3 colonnes parfaites pour l'impression A4 */
+    .dossier-signatures-block {
+        margin-top: 20px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .dossier-signatures-block .row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 12px !important;
+    }
+
+    .dossier-signatures-block .col-md-4 {
+        flex: 1 1 0 !important;
+        width: 33.333% !important;
+        display: flex !important;
+    }
 }

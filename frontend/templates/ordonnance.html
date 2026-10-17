@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ordonnance Médicale - {{ consultation.nom_eleve }} {{ consultation.prenom_eleve }} - SanteScolaire</title>
+    
+    <!-- Bootstrap 5 & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Inter', -apple-system, sans-serif;
+            color: #0f172a;
+            padding: 30px 15px;
+        }
+
+        .prescription-paper {
+            background: #ffffff;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            padding: 48px;
+            position: relative;
+            border: 1px solid #e2e8f0;
+        }
+
+        .caducee-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 260px;
+            color: rgba(16, 172, 132, 0.03);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .ordonnance-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .doctor-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            color: #0f172a;
+        }
+
+        .delivrance-ecole {
+            background-color: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .delivrance-pharma {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .signature-box {
+            border: 1.5px dashed #94a3b8;
+            border-radius: 12px;
+            padding: 20px;
+            background-color: #f8fafc;
+            min-height: 160px;
+        }
+
+        /* Barre d'action supérieure hors impression */
+        .action-bar {
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+        }
+
+        /* ==========================================================================
+           STYLE STRICT POUR L'IMPRESSION (PAPIER A4 / PDF)
+           ========================================================================== */
+        @media print {
+            body {
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-size: 11pt !important;
+            }
+
+            .action-bar {
+                display: none !important;
+            }
+
+            .prescription-paper {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 20px 24px !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .signature-box {
+                border: 1.5px dashed #64748b !important;
+                background-color: #ffffff !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barre d'outils et d'actions (Masquée à l'impression) -->
+    <div class="action-bar d-flex justify-content-between align-items-center">
+        <a href="{{ url_for('eleves.dossier', id_eleve=consultation.id_eleve) }}" class="btn btn-outline-secondary rounded-pill px-3 shadow-xs">
+            <i class="fas fa-arrow-left me-1"></i> Dossier Patient
+        </a>
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-white text-secondary border px-3 py-2 rounded-pill shadow-xs">
+                <i class="fas fa-pills text-primary me-1"></i> {{ total_prescriptions }} médicament{{ 's' if total_prescriptions > 1 }}
+                {% if nb_dispo_ecole > 0 %}
+                &middot; <span class="text-success fw-bold">{{ nb_dispo_ecole }} à l'école</span>
+                {% endif %}
+            </span>
+
+            <a href="{{ url_for('consultations.telecharger_ordonnance_pdf', id_consult=consultation.id_consult) }}" class="btn btn-outline-primary rounded-pill px-3 shadow-xs fw-semibold">
+                <i class="fas fa-file-pdf me-1 text-danger"></i> Télécharger PDF
+            </a>
+
+            <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold text-white" onclick="window.print()">
+                <i class="fas fa-print me-2"></i> Imprimer
+            </button>
+        </div>
+    </div>
+
+    <!-- FEUILLE OFFICIELLE D'ORDONNANCE MÉDICALE -->
+    <div class="prescription-paper">
+        <i class="fas fa-staff-snake caducee-watermark"></i>
+
+        <div class="ordonnance-content">
+
+            <!-- 1. En-tête Médical Officiel -->
+            <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+                <div>
+                    <h3 class="doctor-title fw-bold mb-1">
+                        Dr. {{ consultation.prenom_medecin|default('') }} {{ consultation.nom_medecin|default('Médecin Scolaire') }}
+                    </h3>
+                    <div class="text-primary fw-bold small text-uppercase" style="letter-spacing: 0.05em;">
+                        {{ consultation.specialite|default('Médecine Scolaire & Pédiatrie') }}
+                    </div>
+                    <div class="text-muted small mt-1" style="font-size: 0.78rem;">
+                        <i class="fas fa-hospital me-1 text-secondary"></i> SanteScolaire &middot; Pôle Médical &amp; Prévention
+                    </div>
+                    <div class="text-muted small" style="font-size: 0.75rem;">
+                        <i class="fas fa-id-card me-1 text-secondary"></i> N° d'Ordre National : <strong>45892-MED</strong>
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <div class="d-flex align-items-center justify-content-end gap-2 mb-2">
+                        <div style="width: 38px; height: 38px; border-radius: 10px; background: #10ac84; display: flex; align-items: center; justify-content: center; color: white;">
+                            <i class="fas fa-heart-pulse"></i>
+                        </div>
+                        <div class="text-start">
+                            <span class="fw-bold d-block" style="font-size: 0.95rem; line-height: 1;">Sante<span style="color: #10ac84;">Scolaire</span></span>
+                            <span class="text-muted" style="font-size: 0.65rem; text-transform: uppercase;">Santé des élèves</span>
+                        </div>
+                    </div>
+                    <div class="small text-secondary fw-semibold">
+                        Fait le {{ consultation.date_consult.strftime('%d/%m/%Y') if consultation.date_consult else 'ce jour' }}
+                    </div>
+                    <div class="text-muted small" style="font-size: 0.72rem;">
+                        Réf: ORD-{{ consultation.id_consult }}-{{ consultation.id_eleve }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Cadre Identité de l'Élève / Patient -->
+            <div class="p-3 bg-light rounded-3 mb-4 border d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold d-block" style="font-size: 0.68rem; letter-spacing: 0.05em;">Patient(e)</span>
+                    <h5 class="fw-bold mb-0 text-dark">{{ consultation.nom_eleve }} {{ consultation.prenom_eleve }}</h5>
+                    <div class="text-muted small mt-0.5" style="font-size: 0.78rem;">
+                        Classe : <strong>{{ consultation.classe }}</strong> &middot; Né(e) le : {{ consultation.date_naissance }} &middot; Sexe : {{ 'Masculin' if consultation.sexe == 'M' else 'Féminin' }}
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <span class="badge bg-white text-dark border px-3 py-1.5 rounded-pill small">
+                        Dossier #{{ consultation.id_eleve }}
+                    </span>
+                    {% if consultation.poids or consultation.taille %}
+                    <div class="text-muted small mt-1" style="font-size: 0.72rem;">
+                        Poids: {{ consultation.poids|default('?', true) }}kg &middot; Taille: {{ consultation.taille|default('?', true) }}cm
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 3. Titre de la prescription -->
+            <div class="mb-3">
+                <span class="text-muted text-uppercase fw-bold small" style="font-size: 0.75rem; letter-spacing: 0.1em;">
+                    <i class="fas fa-file-prescription text-primary me-1"></i> PRESCRIPTIONS MÉDICALES :
+                </span>
+            </div>
+
+            <!-- 4. Liste des Médicaments avec Distinction École vs Pharmacie -->
+            <div class="prescription-list mb-5">
+                {% for p in prescriptions %}
+                <div class="p-3 mb-3 rounded-3 border bg-white shadow-xs position-relative" style="border-left: 4px solid {% if p.dispo_ecole %}#10ac84{% else %}#2563eb{% endif %} !important;">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <span class="fw-bold text-dark fs-6">{{ loop.index }}. {{ p.medicament }}</span>
+                        </div>
+                        <div>
+                            {% if p.dispo_ecole %}
+                            <span class="delivrance-ecole">
+                                <i class="fas fa-school me-1"></i> Disponible à l'infirmerie (Délivré à l'école)
+                            </span>
+                            {% else %}
+                            <span class="delivrance-pharma">
+                                <i class="fas fa-store me-1"></i> En pharmacie d'officine (À la charge des parents)
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="text-secondary small mt-1 ms-3">
+                        <i class="fas fa-angle-right me-1 text-primary"></i> <strong>Posologie :</strong> {{ p.dosage }}
+                    </div>
+                    <div class="text-muted small mt-0.5 ms-3" style="font-size: 0.75rem;">
+                        <i class="fas fa-clock me-1 text-secondary"></i> <strong>Durée du traitement :</strong> {{ p.duree }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 5. Instructions / Recommandations complémentaires -->
+            {% if consultation.motif %}
+            <div class="p-3 bg-light rounded-3 mb-4 small text-secondary border">
+                <strong><i class="fas fa-info-circle text-primary me-1"></i> Contexte clinique :</strong> 
+                {{ consultation.motif }}
+            </div>
+            {% endif %}
+
+            <!-- ==========================================================================
+                 6. CADRE OFFICIEL DE SIGNATURE & CACHET MÉDICAL (OBLIGATOIRE)
+                 ========================================================================== -->
+            <div class="row mt-4 pt-3 border-top">
+                <div class="col-6">
+                    <div class="small text-muted" style="font-size: 0.72rem; line-height: 1.5;">
+                        <i class="fas fa-shield-alt text-primary me-1"></i> <strong>Validité légale :</strong><br>
+                        Cette ordonnance est valable <strong>3 mois</strong> à compter de sa date de prescription.<br>
+                        Délivrance nominative strictement réservée au patient ou à ses représentants légaux.<br>
+                        Ne pas renouveler sans avis médical express.
+                    </div>
+                </div>
+
+                <div class="col-6">
+                    <div class="signature-box text-center d-flex flex-column justify-content-between h-100">
+                        <div>
+                            <span class="fw-bold text-dark d-block" style="font-size: 0.85rem;">
+                                SIGNATURE &amp; CACHET DU PRATICIEN
+                            </span>
+                            <small class="text-muted" style="font-size: 0.7rem;">
+                                Dr. {{ consultation.nom_medecin|default('Médecin Scolaire') }}
+                            </small>
+                        </div>
+
+                        <!-- Zone dégagée pour signature manuscrite et apposition du tampon encreur -->
+                        <div class="my-3 text-muted fst-italic" style="font-size: 0.7rem; min-height: 60px;">
+                            <span class="opacity-25">[ Emplacement pour signature manuscrite &amp; cachet ]</span>
+                        </div>
+
+                        <div class="border-top pt-1 text-muted" style="font-size: 0.65rem;">
+                            Document certifié conforme &middot; Système Santé Scolaire
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>
+

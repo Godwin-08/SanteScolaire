@@ -7,39 +7,115 @@ CREATE DATABASE IF NOT EXISTS gestion_hospitaliere_scolaire
 
 USE gestion_hospitaliere_scolaire;
 
+-- 1. Admin
 CREATE TABLE IF NOT EXISTS admin (
   id_admin INT AUTO_INCREMENT PRIMARY KEY,
   nom_admin VARCHAR(100) NOT NULL,
   prenom_admin VARCHAR(100) NOT NULL,
-  password_hash VARCHAR(255) NOT NULL
+  email VARCHAR(191) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  activation_token_hash VARCHAR(64) DEFAULT NULL,
+  activation_expires_at DATETIME DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 2. Référentiel des Spécialités Médicales
+CREATE TABLE IF NOT EXISTS specialite (
+  id_specialite INT AUTO_INCREMENT PRIMARY KEY,
+  nom_specialite VARCHAR(100) NOT NULL UNIQUE,
+  code_specialite VARCHAR(20) DEFAULT NULL,
+  description VARCHAR(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. Personnel : Médecins
 CREATE TABLE IF NOT EXISTS medecin (
   id_medecin INT AUTO_INCREMENT PRIMARY KEY,
   nom_medecin VARCHAR(100) NOT NULL,
   prenom_medecin VARCHAR(100) NOT NULL,
+  email VARCHAR(191) NOT NULL UNIQUE,
   specialite VARCHAR(100) DEFAULT NULL,
+  id_specialite INT DEFAULT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  must_change_password TINYINT(1) NOT NULL DEFAULT 1
+  must_change_password TINYINT(1) NOT NULL DEFAULT 0,
+  activation_token_hash VARCHAR(64) DEFAULT NULL,
+  activation_expires_at DATETIME DEFAULT NULL,
+  CONSTRAINT fk_medecin_specialite
+    FOREIGN KEY (id_specialite) REFERENCES specialite(id_specialite)
+    ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 4. Personnel : Infirmiers
 CREATE TABLE IF NOT EXISTS infirmier (
   id_infirmier INT AUTO_INCREMENT PRIMARY KEY,
   nom_infirmier VARCHAR(100) NOT NULL,
   prenom_infirmier VARCHAR(100) NOT NULL,
+  email VARCHAR(191) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  must_change_password TINYINT(1) NOT NULL DEFAULT 1
+  must_change_password TINYINT(1) NOT NULL DEFAULT 0,
+  activation_token_hash VARCHAR(64) DEFAULT NULL,
+  activation_expires_at DATETIME DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 5. Référentiel des Classes scolaires
+CREATE TABLE IF NOT EXISTS classe (
+  id_classe INT AUTO_INCREMENT PRIMARY KEY,
+  nom_classe VARCHAR(50) NOT NULL UNIQUE,
+  niveau VARCHAR(50) NOT NULL,
+  filiere VARCHAR(100) DEFAULT NULL,
+  annee_scolaire VARCHAR(20) NOT NULL DEFAULT '2025-2026'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6. Élèves
 CREATE TABLE IF NOT EXISTS eleve (
   id_eleve INT AUTO_INCREMENT PRIMARY KEY,
   nom_eleve VARCHAR(100) NOT NULL,
   prenom_eleve VARCHAR(100) NOT NULL,
   classe VARCHAR(50) NOT NULL,
+  id_classe INT DEFAULT NULL,
   sexe ENUM('M','F') NOT NULL,
-  date_naissance DATE NOT NULL
+  date_naissance DATE NOT NULL,
+  CONSTRAINT fk_eleve_classe
+    FOREIGN KEY (id_classe) REFERENCES classe(id_classe)
+    ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 7. Antécédents Médicaux et PAI (Projet d'Accueil Individualisé)
+CREATE TABLE IF NOT EXISTS antecedent_medical (
+  id_antecedent INT AUTO_INCREMENT PRIMARY KEY,
+  id_eleve INT NOT NULL,
+  type VARCHAR(100) NOT NULL,
+  description TEXT NOT NULL,
+  severite ENUM('Faible', 'Moyenne', 'Critique') NOT NULL DEFAULT 'Moyenne',
+  conduite_a_tenir TEXT DEFAULT NULL,
+  pai_signe TINYINT(1) NOT NULL DEFAULT 0,
+  date_declaration DATE DEFAULT NULL,
+  CONSTRAINT fk_antecedent_eleve
+    FOREIGN KEY (id_eleve) REFERENCES eleve(id_eleve)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. Pharmacie de l'Infirmerie et Stocks de Médicaments
+CREATE TABLE IF NOT EXISTS stock_medicament (
+  id_medicament INT AUTO_INCREMENT PRIMARY KEY,
+  nom_medicament VARCHAR(150) NOT NULL,
+  forme VARCHAR(50) NOT NULL,
+  quantite_stock INT NOT NULL DEFAULT 0,
+  seuil_alerte INT NOT NULL DEFAULT 10,
+  unite_mesure VARCHAR(30) DEFAULT 'boîtes',
+  date_peremption DATE DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 9. Journal d'Audit et Sécurité (Traçabilité)
+CREATE TABLE IF NOT EXISTS audit_log (
+  id_log INT AUTO_INCREMENT PRIMARY KEY,
+  action VARCHAR(100) NOT NULL,
+  user_type VARCHAR(50) NOT NULL,
+  user_id INT DEFAULT NULL,
+  details TEXT DEFAULT NULL,
+  ip_address VARCHAR(45) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. Consultations
 CREATE TABLE IF NOT EXISTS consultation (
   id_consult INT AUTO_INCREMENT PRIMARY KEY,
   date_consult DATETIME NOT NULL,
@@ -63,6 +139,7 @@ CREATE TABLE IF NOT EXISTS consultation (
     ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 11. Prescriptions
 CREATE TABLE IF NOT EXISTS prescription (
   id_prescription INT AUTO_INCREMENT PRIMARY KEY,
   medicament VARCHAR(255) NOT NULL,
@@ -74,6 +151,7 @@ CREATE TABLE IF NOT EXISTS prescription (
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 12. Rendez-vous Médicaux
 CREATE TABLE IF NOT EXISTS rdv (
   id_rdv INT AUTO_INCREMENT PRIMARY KEY,
   id_eleve INT NOT NULL,
@@ -88,9 +166,13 @@ CREATE TABLE IF NOT EXISTS rdv (
     ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Index de performance
 CREATE INDEX idx_eleve_classe ON eleve (classe);
+CREATE INDEX idx_eleve_id_classe ON eleve (id_classe);
 CREATE INDEX idx_consultation_eleve ON consultation (id_eleve);
 CREATE INDEX idx_consultation_medecin ON consultation (id_medecin);
 CREATE INDEX idx_consultation_infirmier ON consultation (id_infirmier);
 CREATE INDEX idx_rdv_eleve ON rdv (id_eleve);
 CREATE INDEX idx_rdv_medecin ON rdv (id_medecin);
+CREATE INDEX idx_antecedent_eleve ON antecedent_medical (id_eleve);
+CREATE INDEX idx_audit_created ON audit_log (created_at);

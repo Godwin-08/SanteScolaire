@@ -1,93 +1,403 @@
 {% extends "base.html" %}
 
-{% block title %}Tableau de Bord - SanteScolaire{% endblock %}
+{% block title %}
+{% if session.user_role == 'medecin' %}Espace Médecin - SanteScolaire
+{% elif session.user_role == 'infirmier' %}Pilotage Infirmerie - SanteScolaire
+{% else %}Tableau de Bord - SanteScolaire{% endif %}
+{% endblock %}
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<style>
+    .kpi-card {
+        background: #ffffff;
+        border-radius: 18px;
+        padding: 1.4rem;
+        border: 1px solid rgba(0,0,0,0.04);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 172, 132, 0.08);
+    }
+    .kpi-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+    }
+    .badge-pai-alert {
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fca5a5;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        padding: 0.35rem 0.65rem;
+        border-radius: 50rem;
+    }
+    .badge-ok {
+        background: #dcfce7;
+        color: #15803d;
+        font-weight: 600;
+        padding: 0.35rem 0.65rem;
+        border-radius: 50rem;
+    }
+    .badge-trend-up {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+    .badge-trend-down {
+        background: #dcfce7;
+        color: #15803d;
+    }
+    .badge-trend-stable {
+        background: #f1f5f9;
+        color: #475569;
+    }
+    .table-modern {
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    .table-modern tbody tr {
+        background: #ffffff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+    .table-modern tbody tr:hover {
+        background: #f8fafc;
+        transform: scale(1.002);
+    }
+    .table-modern td, .table-modern th {
+        padding: 1rem 1.2rem;
+        vertical-align: middle;
+        border: none;
+    }
+    .table-modern tbody tr td:first-child {
+        border-top-left-radius: 12px;
+        border-bottom-left-radius: 12px;
+    }
+    .table-modern tbody tr td:last-child {
+        border-top-right-radius: 12px;
+        border-bottom-right-radius: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block page_title %}
+{% if session.user_role == 'medecin' %}Espace Consultation &middot; {{ session.username }}
+{% elif session.user_role == 'infirmier' %}Poste de Soins & Infirmerie
+{% else %}Tableau de Bord & Pilotage{% endif %}
+{% endblock %}
+
+{% block topbar_actions %}
+<div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('eleves.index') }}" class="btn btn-sm btn-white border rounded-pill px-3 shadow-xs text-secondary" style="font-size: 0.8rem;">
+        <i class="fas fa-search me-1 text-primary"></i> Rechercher patient
+    </a>
+    <a href="{{ url_for('dashboard.agenda') }}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-xs text-white" style="font-size: 0.8rem;">
+        <i class="fas fa-calendar-alt me-1"></i> Mon Agenda
+    </a>
+</div>
 {% endblock %}
 
 {% block content %}
-<!-- En-tête du Dashboard avec message de bienvenue et boutons d'action -->
-<div class="container py-5 animate__animated animate__fadeIn">
-    <div class="d-flex align-items-center mb-5">
-        <div class="p-3 bg-white shadow-sm rounded-circle me-3">
-            <i class="fas fa-analytics fa-2x text-primary"></i>
+<div class="w-100 animate__animated animate__fadeIn">
+
+    <!-- ================================================================= -->
+    <!-- VUE SPÉCIFIQUE : MÉDECIN -->
+    <!-- ================================================================= -->
+    {% if session.user_role == 'medecin' and kpi_medecin %}
+    
+    <!-- 1. Bannière de Tendance Mensuelle (Inspiré de GTM) -->
+    {% if tendance %}
+    <div class="alert bg-white border-0 shadow-sm rounded-4 mb-4 p-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <div class="me-3 fs-3">
+                {% if tendance.direction == 'hausse' %}
+                    <i class="fas fa-arrow-trend-up text-danger"></i>
+                {% elif tendance.direction == 'baisse' %}
+                    <i class="fas fa-arrow-trend-down text-success"></i>
+                {% else %}
+                    <i class="fas fa-arrow-right text-muted"></i>
+                {% endif %}
+            </div>
+            <div>
+                <span class="fw-bold text-dark">Activité médico-scolaire globale :</span>
+                <span class="text-muted">{{ tendance.message }}</span>
+            </div>
         </div>
         <div>
-            <h2 class="fw-bold mb-0 text-dark" style="letter-spacing: -1px;">
-                {% if session.user_role == 'medecin' %}Espace Médecin
-                {% elif session.user_role == 'infirmier' %}Pilotage Infirmerie
-                {% else %}Administration Globale{% endif %}
-            </h2>
-            <p class="text-muted mb-0">Tableau de Bord &mdash; Bienvenue, {{ session.username }}</p>
+            <span class="badge rounded-pill px-3 py-2 {% if tendance.direction == 'hausse' %}badge-trend-up{% elif tendance.direction == 'baisse' %}badge-trend-down{% else %}badge-trend-stable{% endif %}">
+                {% if tendance.direction == 'hausse' %}+{% elif tendance.direction == 'baisse' %}-{% endif %}{{ tendance.variation_pct }}% ce mois
+            </span>
         </div>
-        {% if session.user_role != 'admin' %}
-        <div class="ms-auto">
-            <a href="{{ url_for('eleves.index') }}" class="btn btn-primary shadow-sm rounded-pill px-4">
-                <i class="fas fa-search me-2"></i>Rechercher un patient
-            </a>
+    </div>
+    {% endif %}
+
+    <!-- 2. Cartes KPIs Médecin -->
+    <div class="row g-3 mb-4">
+        <!-- Consultations ce mois -->
+        <div class="col-md-3 col-sm-6">
+            <div class="kpi-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Consults ce mois</span>
+                    <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-stethoscope"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-dark mb-1">{{ kpi_medecin.consultations_ce_mois }}</h2>
+                <small class="text-muted">Total carrière : <strong>{{ kpi_medecin.total_consultations }}</strong></small>
+            </div>
         </div>
-        {% endif %}
-        {% if session.user_role == 'admin' %}
-        <div class="ms-auto">
-            <a href="{{ url_for('admin.panel') }}" class="btn btn-dark shadow-sm rounded-pill px-4"><i class="fas fa-users-cog me-2"></i>Gérer le Personnel</a>
+
+        <!-- Patients distincts -->
+        <div class="col-md-3 col-sm-6">
+            <div class="kpi-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Patientèle active</span>
+                    <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-dark mb-1">{{ kpi_medecin.patients_distincts }}</h2>
+                <small class="text-muted">Élèves différents suivis</small>
+            </div>
+        </div>
+
+        <!-- Taux d'assiduité aux RDV -->
+        <div class="col-md-3 col-sm-6">
+            <div class="kpi-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Taux d'Assiduité</span>
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-dark mb-1">{{ kpi_medecin.taux_assiduite }}<span class="fs-5">%</span></h2>
+                <small class="text-muted">Rendez-vous honorés</small>
+            </div>
+        </div>
+
+        <!-- RDV Programmés à venir -->
+        <div class="col-md-3 col-sm-6">
+            <div class="kpi-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">RDV à venir</span>
+                    <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-dark mb-1">{{ kpi_medecin.rdv_a_venir }}</h2>
+                <small class="text-muted">En attente de passage</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. File d'attente du jour (Aujourd'hui) avec Alerte PAI -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="fas fa-clock text-primary me-2"></i>File d'Attente du Jour &mdash; Aujourd'hui
+                </h5>
+                <small class="text-muted">Élèves convoqués en consultation médicale ce jour</small>
+            </div>
+            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold">
+                {{ kpi_medecin.visites_du_jour|length }} prévu(s)
+            </span>
+        </div>
+
+        {% if kpi_medecin.visites_du_jour %}
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead class="text-muted small text-uppercase">
+                    <tr>
+                        <th>Horaire</th>
+                        <th>Élève</th>
+                        <th>Classe</th>
+                        <th>Vigilance Santé</th>
+                        <th>Statut</th>
+                        <th class="text-end">Actions rapides</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in kpi_medecin.visites_du_jour %}
+                    <tr class="gtm-interactive-row" 
+                        tabindex="0"
+                        onclick="if (!event.target.closest('a, button')) window.location.href = '{{ url_for('eleves.dossier', id_eleve=v.eleve_id) }}';"
+                        onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); if (!event.target.closest('a, button')) window.location.href = '{{ url_for('eleves.dossier', id_eleve=v.eleve_id) }}'; }"
+                        title="Cliquer pour ouvrir le dossier médical de {{ v.eleve_nom }}">
+                        <td>
+                            <span class="fw-bold text-primary fs-6">
+                                <i class="far fa-clock me-1"></i>{{ v.heure }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ v.eleve_nom }}</div>
+                            <small class="text-muted">ID #{{ v.eleve_id }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border px-2 py-1">{{ v.classe }}</span>
+                        </td>
+                        <td>
+                            {% if v.a_pai %}
+                            <span class="badge-pai-alert d-inline-flex align-items-center" title="Cet élève a un protocole d'accueil individualisé ou un antécédent critique">
+                                <i class="fas fa-triangle-exclamation me-1"></i> PAI &middot; Prioritaire
+                            </span>
+                            {% else %}
+                            <span class="badge-ok d-inline-flex align-items-center">
+                                <i class="fas fa-shield-halved me-1"></i> Standard
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-soft-primary text-primary px-3 py-1 rounded-pill">{{ v.statut }}</span>
+                        </td>
+                        <td class="text-end" onclick="event.stopPropagation()">
+                            <a href="{{ url_for('consultations.nouvelle_visite', id_eleve=v.eleve_id) }}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm text-white me-1">
+                                <i class="fas fa-notes-medical me-1"></i> Consulter
+                            </a>
+                            <a href="{{ url_for('eleves.dossier', id_eleve=v.eleve_id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                <i class="fas fa-folder-open me-1"></i> Dossier
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="far fa-calendar-check fa-3x text-muted opacity-50 mb-3"></i>
+            <p class="mb-0 fw-semibold">Aucun rendez-vous planifié pour aujourd'hui.</p>
+            <small class="text-muted">Consultez l'agenda complet pour voir les prochaines dates de passage.</small>
         </div>
         {% endif %}
     </div>
 
-    <!-- Section KPIs : Cartes statistiques (Patients, Consultations, Semaine) -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-3 d-flex flex-row align-items-center h-100">
-                <div class="avatar-circle bg-primary bg-opacity-10 text-primary me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
-                    <i class="fas fa-user-graduate"></i>
-                </div>
-                <div>
-                    <h6 class="text-muted small fw-bold mb-0 text-uppercase">{{ 'Mes Patients' if session.user_role == 'medecin' else 'Total Patients' }}</h6>
-                    <h3 class="fw-bold mb-0 text-dark">{{ nb_eleves }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-3 d-flex flex-row align-items-center h-100">
-                <div class="avatar-circle bg-success bg-opacity-10 text-success me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
-                    <i class="fas fa-notes-medical"></i>
-                </div>
-                <div>
-                    <h6 class="text-muted small fw-bold mb-0 text-uppercase">{{ 'Mes Consultations' if session.user_role == 'medecin' else 'Total Consultations' }}</h6>
-                    <h3 class="fw-bold mb-0 text-dark">{{ nb_consultations }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-3 d-flex flex-row align-items-center h-100">
-                <div class="avatar-circle bg-warning bg-opacity-10 text-warning me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
-                    <i class="fas fa-calendar-week"></i>
-                </div>
-                <div>
-                    <h6 class="text-muted small fw-bold mb-0 text-uppercase">Cette Semaine</h6>
-                    <h3 class="fw-bold mb-0 text-dark">{{ total_semaine }} <span class="text-muted fs-6 fw-normal">visites</span></h3>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Section Graphiques : Canvas pour Chart.js -->
-    <div class="row g-4">
-        {% if pie_labels %}
+    <!-- 4. Répartition Épidémiologique par Cycle (Collège vs Lycée) -->
+    {% if repartition %}
+    <div class="row g-4 mb-4">
         <div class="col-md-6">
-            <div class="card border-0 shadow-lg rounded-4 p-4 h-100 bg-white">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="fas fa-school text-primary me-2"></i>Pathologies Fréquentes &mdash; Collège
+                    </h6>
+                    <span class="badge bg-light text-muted border">1AC - 3AC</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for motif, count in repartition.college %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-0 border-bottom">
+                        <span class="text-dark">{{ motif }}</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill">{{ count }} cas</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted text-center py-2 border-0">Aucune donnée disponible.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="fas fa-graduation-cap text-success me-2"></i>Pathologies Fréquentes &mdash; Lycée
+                    </h6>
+                    <span class="badge bg-light text-muted border">TCS - 2BAC</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for motif, count in repartition.lycee %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-0 border-bottom">
+                        <span class="text-dark">{{ motif }}</span>
+                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill">{{ count }} cas</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted text-center py-2 border-0">Aucune donnée disponible.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% endif %}
+
+
+    <!-- ================================================================= -->
+    <!-- VUE SPÉCIFIQUE : INFIRMIER -->
+    <!-- ================================================================= -->
+    {% if session.user_role == 'infirmier' and kpi_infirmier %}
+    
+    <!-- 1. Cartes KPIs Infirmier -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="kpi-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Passages Aujourd'hui</span>
+                    <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-user-injured"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-dark mb-1">{{ kpi_infirmier.passages_aujourdhui }}</h2>
+                <small class="text-muted">Élèves accueillis ce jour</small>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="kpi-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Soins de la semaine</span>
+                    <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                        <i class="fas fa-bandage"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-dark mb-1">{{ kpi_infirmier.passages_semaine }}</h2>
+                <small class="text-muted">Total des prises en charge</small>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="kpi-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Pharmacie : Sous Seuil</span>
+                    <div class="kpi-icon bg-danger bg-opacity-10 text-danger">
+                        <i class="fas fa-prescription-bottle-medical"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold text-danger mb-1">{{ kpi_infirmier.nb_stocks_critiques }}</h2>
+                <small class="text-muted">Médicaments en alerte rupture</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- GRAPHIQUES D'ACTIVITÉ (COMMUNS MÉDECIN / INFIRMIER) -->
+    <!-- ================================================================= -->
+    <div class="row g-4 mb-4">
+        {% if pie_labels %}
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <h5 class="fw-bold text-dark mb-0">{{ pie_title }}</h5>
+                        <h6 class="fw-bold text-dark mb-0">{{ pie_title }}</h6>
                         <small class="text-muted">{{ pie_subtitle }}</small>
                     </div>
-                    <span class="badge bg-soft-primary text-primary rounded-pill px-3"><i class="fas fa-chart-pie me-1"></i>Analyse</span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">
+                        <i class="fas fa-chart-pie me-1"></i> Répartition
+                    </span>
                 </div>
-                <!-- Zone de dessin pour le camembert -->
-                <canvas id="pieChart" style="max-height: 350px;"></canvas>
+                <div style="position: relative; height: 260px;">
+                    <canvas id="pieChart"></canvas>
+                </div>
                 {% if pie_info %}
-                <div class="mt-4 pt-3 border-top text-center">
+                <div class="mt-3 pt-2 border-top text-center">
                     <small class="text-muted">{{ pie_info | safe }}</small>
                 </div>
                 {% endif %}
@@ -95,68 +405,177 @@
         </div>
         {% endif %}
 
-        <div class="{{ 'col-md-6' if pie_labels else 'col-md-12' }}">
-            <div class="card border-0 shadow-lg rounded-4 p-4 h-100 bg-white">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="{{ 'col-md-7' if pie_labels else 'col-md-12' }}">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <h5 class="fw-bold text-dark mb-0">{{ bar_title }}</h5>
+                        <h6 class="fw-bold text-dark mb-0">{{ bar_title }}</h6>
                         <small class="text-muted">{{ bar_subtitle }}</small>
                     </div>
-                    <div>
-                        <button id="printReportBtn" class="btn btn-sm btn-outline-secondary rounded-pill me-2">
-                            <i class="fas fa-print me-1"></i>Imprimer
+                    <div class="d-flex align-items-center gap-2">
+                        <button id="printReportBtn" class="btn btn-sm btn-white border rounded-pill px-3 shadow-xs text-secondary" style="font-size: 0.78rem;">
+                            <i class="fas fa-print me-1"></i> Imprimer
                         </button>
-                        <span class="badge bg-soft-primary text-primary rounded-pill px-3"><i class="fas fa-chart-bar me-1"></i>Tendance</span>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1.5" style="font-size: 0.75rem;">
+                            <i class="fas fa-chart-bar me-1"></i> 7 Jours
+                        </span>
                     </div>
                 </div>
-                <canvas id="jourChart" style="max-height: 350px;"></canvas>
-                <div class="mt-4 pt-3 border-top text-center">
-                    <small class="text-muted">Pic d'activité : <strong class="text-primary">{{ total_semaine }}</strong> consultations récentes</small>
+                <div style="position: relative; height: 260px;">
+                    <canvas id="jourChart"></canvas>
+                </div>
+                <div class="mt-3 pt-2 border-top text-center">
+                    <small class="text-muted">Total des visites sur les 7 derniers jours : <strong class="text-primary">{{ total_semaine }}</strong> consultations</small>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Section Agenda : Tableau des prochains rendez-vous -->
-    {% if session.user_role != 'admin' %}
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-lg rounded-4 p-4 bg-white">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold text-dark mb-0"><i class="fas fa-calendar-alt me-2 text-primary"></i>{{ 'Mon Agenda' if session.user_role == 'medecin' else 'Agenda de l\'Infirmerie' }}</h5>
-                    <a href="{{ url_for('dashboard.agenda') }}" class="btn btn-sm btn-outline-primary rounded-pill">Voir tout l'agenda</a>
+    <!-- 2. Alerte Réserve Pharmacie (si rupture) -->
+    {% if kpi_infirmier.nb_stocks_critiques > 0 %}
+    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white mb-4 border-start border-danger border-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; font-size: 1.15rem;">
+                    <i class="fas fa-triangle-exclamation"></i>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col" class="border-0 rounded-start">Patient</th>
-                                <th scope="col" class="border-0">Date & Heure</th>
-                                <th scope="col" class="border-0">Médecin</th>
-                                <th scope="col" class="border-0 rounded-end text-end">Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for rdv in rdvs %}
-                            <tr>
-                                <td class="fw-bold text-dark">{{ rdv.nom_eleve }} {{ rdv.prenom_eleve }}</td>
-                                <td class="text-primary fw-bold">{{ rdv.date_rdv }}</td>
-                                <td class="text-muted">{% if rdv.nom_medecin %}Dr. {{ rdv.nom_medecin }}{% else %}Non assigné{% endif %}</td>
-                                <td class="text-end"><span class="badge bg-soft-primary text-primary">Programmé</span></td>
-                            </tr>
-                            {% else %}
-                            <tr><td colspan="4" class="text-center text-muted py-3">Aucun rendez-vous prévu.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div>
+                    <h6 class="fw-bold text-dark mb-0">Attention : {{ kpi_infirmier.nb_stocks_critiques }} médicament(s) sous le seuil d'alerte</h6>
+                    <small class="text-muted">Des produits de première nécessité nécessitent un réapprovisionnement à l'infirmerie.</small>
                 </div>
             </div>
+            <a href="{{ url_for('dashboard.pharmacie') }}" class="btn btn-sm btn-danger rounded-pill px-3 shadow-xs fw-semibold">
+                <i class="fas fa-boxes-stacked me-1"></i> Ouvrir Pharmacie &amp; Stocks &rarr;
+            </a>
         </div>
     </div>
     {% endif %}
+
+    <!-- 3. Passages Récents & Soins au Poste d'Infirmerie -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="fas fa-notes-medical text-primary me-2"></i>Derniers Passages &amp; Soins Infirmiers
+                </h5>
+                <small class="text-muted">Élèves pris en charge récemment au poste de santé</small>
+            </div>
+            <a href="{{ url_for('eleves.index') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                <i class="fas fa-plus me-1"></i> Nouveau Soin / Triage
+            </a>
+        </div>
+
+        {% if passages_recents %}
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead class="text-muted small text-uppercase">
+                    <tr>
+                        <th>Date &amp; Heure</th>
+                        <th>Élève</th>
+                        <th>Classe</th>
+                        <th>Motif du Passage</th>
+                        <th>Constantes</th>
+                        <th>Vigilance</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in passages_recents %}
+                    <tr class="gtm-interactive-row"
+                        tabindex="0"
+                        onclick="if (!event.target.closest('a, button')) window.location.href = '{{ url_for('eleves.dossier', id_eleve=p.id_eleve) }}';"
+                        title="Ouvrir le dossier de {{ p.nom_eleve }} {{ p.prenom_eleve }}">
+                        <td>
+                            <span class="text-dark fw-semibold small">
+                                <i class="far fa-clock text-muted me-1"></i>{{ p.date_consult.strftime('%d/%m %H:%M') if p.date_consult else '-' }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ p.nom_eleve }} {{ p.prenom_eleve }}</div>
+                            <small class="text-muted">ID #{{ p.id_eleve }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border px-2 py-1">{{ p.classe }}</span>
+                        </td>
+                        <td>
+                            <span class="text-dark fw-medium">{{ p.motif or 'Non spécifié' }}</span>
+                        </td>
+                        <td>
+                            {% if p.temperature %}
+                            <span class="badge {{ 'bg-danger bg-opacity-10 text-danger' if p.temperature >= 38.0 else 'bg-light text-dark border' }}">
+                                <i class="fas fa-thermometer-half me-1"></i>{{ p.temperature }}°C
+                            </span>
+                            {% else %}
+                            <span class="text-muted small">&mdash;</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.a_pai %}
+                            <span class="badge-pai-alert d-inline-flex align-items-center" title="Protocole d'accueil individualisé">
+                                <i class="fas fa-triangle-exclamation me-1"></i> PAI
+                            </span>
+                            {% else %}
+                            <span class="badge-ok d-inline-flex align-items-center">
+                                <i class="fas fa-shield-halved me-1"></i> Normal
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end" onclick="event.stopPropagation()">
+                            <a href="{{ url_for('eleves.dossier', id_eleve=p.id_eleve) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                <i class="fas fa-folder-open me-1"></i> Dossier
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="fas fa-notes-medical fa-3x text-muted opacity-50 mb-3"></i>
+            <p class="mb-0 fw-semibold">Aucun passage enregistré récemment.</p>
+            <small class="text-muted">Les prochains soins enregistrés apparaîtront automatiquement ici.</small>
+        </div>
+        {% endif %}
+    </div>
+
+    {% endif %}
+
+    <!-- RDVs pour l'infirmier (s'il en a) -->
+    {% if session.user_role == 'infirmier' and rdvs %}
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold text-dark mb-0"><i class="fas fa-calendar-alt text-primary me-2"></i>Prochains Rendez-vous Médicaux</h6>
+            <a href="{{ url_for('dashboard.agenda') }}" class="btn btn-sm btn-outline-primary rounded-pill">Voir tout l'agenda</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th>Élève</th>
+                        <th>Date & Heure</th>
+                        <th>Médecin</th>
+                        <th class="text-end">Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rdvs %}
+                    <tr class="gtm-interactive-row" onclick="window.location.href='{{ url_for('eleves.dossier', id_eleve=r.id_eleve) }}';" style="cursor: pointer;">
+                        <td class="fw-bold">{{ r.nom_eleve }} {{ r.prenom_eleve }}</td>
+                        <td class="text-primary fw-bold">{{ r.date_rdv }}</td>
+                        <td class="text-muted">Dr. {{ r.nom_medecin or 'Non assigné' }}</td>
+                        <td class="text-end"><span class="badge bg-soft-primary text-primary">Programmé</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 
-<!-- Transfert de données : On passe les variables Python (Jinja) vers le JavaScript via des attributs data- -->
+<!-- Transfert des données pour Chart.js -->
 <div id="chart-data" 
      data-pie-labels='{{ pie_labels | tojson | safe }}'
      data-pie-values='{{ pie_values | tojson | safe }}'
@@ -168,4 +587,54 @@
 {% block js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+// Fonction AJAX pour ajuster le stock de médicament en temps réel
+function ajusterStock(medicamentId, delta) {
+    fetch('{{ url_for("dashboard.ajuster_stock") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ id: medicamentId, delta: delta })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Erreur réseau ou non autorisé');
+        return response.json();
+    })
+    .then(data => {
+        // Mettre à jour l'affichage de la quantité
+        const qtyEl = document.getElementById('stock-qty-' + data.id);
+        if (qtyEl) {
+            qtyEl.textContent = data.nouvelle_qte;
+        }
+
+        // Mettre à jour le badge de statut
+        const badgeEl = document.getElementById('stock-badge-' + data.id);
+        if (badgeEl) {
+            if (data.en_alerte) {
+                badgeEl.innerHTML = '<span class="badge bg-danger text-white rounded-pill px-2 py-1"><i class="fas fa-exclamation-triangle me-1"></i> Critique</span>';
+            } else {
+                badgeEl.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1"><i class="fas fa-check me-1"></i> Confortable</span>';
+            }
+        }
+    })
+    .catch(err => {
+        console.error('Erreur ajustement stock:', err);
+        alert('Impossible de modifier le stock. Vérifiez vos autorisations.');
+    });
+}
+
+// Recherche instantanée dans la table des stocks infirmier
+function filtrerStock(term) {
+    const q = (term || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('.stock-item-row');
+    rows.forEach(row => {
+        const nom = row.querySelector('.stock-nom');
+        if (!nom) return;
+        const text = nom.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+    });
+}
+</script>
 {% endblock %}

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block page_title %}Patientèle &amp; Dossiers Élèves{% endblock %}
+
+{% block topbar_actions %}
+<div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('eleves.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <i class="fas fa-arrow-up-right-from-square me-1"></i> Vue Standard Patients
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="w-100">
+    <!-- Mini KPI Banner -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Effectif Total Élèves</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ total_eleves }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-users-medical fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Vigilance PAI &amp; Prioritaires</div>
+                        <div class="fs-4 fw-bold text-danger mt-1">{{ eleves_pai }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-danger bg-opacity-10 text-danger">
+                        <i class="fas fa-triangle-exclamation fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Classes Renseignées</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ classes|length }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-info bg-opacity-10 text-info">
+                        <i class="fas fa-school fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-3">
+        <form method="GET" action="{{ url_for('admin.liste_eleves') }}" class="row g-2 align-items-center">
+            <div class="col-md-7">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control bg-light border-0" placeholder="Rechercher élève par nom, prénom, classe..." value="{{ search_q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="classe" class="form-select bg-light border-0">
+                    <option value="">Toutes les classes</option>
+                    {% for c in classes %}
+                    <option value="{{ c }}" {% if classe_filter == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                {% if search_q or classe_filter %}
+                <a href="{{ url_for('admin.liste_eleves') }}" class="btn btn-light" title="Réinitialiser"><i class="fas fa-xmark"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Interactive Table (GTM Style) -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center p-3">
+            <span class="fw-bold text-dark"><i class="fas fa-address-book me-2 text-primary"></i>Registre Médical des Élèves</span>
+            <span class="badge bg-light text-muted border">{{ eleves|length }} élève(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table gtm-table align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4">Identité de l'Élève</th>
+                        <th>Classe</th>
+                        <th>Historique Consultations</th>
+                        <th>Suivi Clinique / Vigilance</th>
+                        <th class="text-end pe-4">Dossier</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in eleves %}
+                    <tr class="gtm-interactive-row" onclick="window.location.href='{{ url_for('eleves.dossier', id_eleve=e.id_eleve) }}'">
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" 
+                                     style="width: 38px; height: 38px; background: #3b82f6; font-size: 0.85rem;">
+                                    {{ e.prenom_eleve[0]|upper }}{{ e.nom_eleve[0]|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold text-dark">{{ e.prenom_eleve }} {{ e.nom_eleve }}</div>
+                                    <small class="text-muted">ID: #ELV-{{ e.id_eleve }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border px-2 py-1">{{ e.classe or 'Non assignée' }}</span>
+                        </td>
+                        <td>
+                            <span class="fw-semibold text-dark">{{ e.nb_consultations }}</span>
+                            <span class="text-muted small">visite(s)</span>
+                        </td>
+                        <td>
+                            {% if e.a_pai %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">
+                                <i class="fas fa-triangle-exclamation me-1"></i>PAI / Alerte Médicale
+                            </span>
+                            {% elif e.nb_antecedents > 0 %}
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1">
+                                <i class="fas fa-file-medical me-1"></i>{{ e.nb_antecedents }} antécédent(s)
+                            </span>
+                            {% else %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                                <i class="fas fa-check me-1"></i>Standard
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4" onclick="event.stopPropagation()">
+                            <a href="{{ url_for('eleves.dossier', id_eleve=e.id_eleve) }}" class="btn btn-sm btn-light text-primary rounded-circle" title="Ouvrir le dossier patient" style="width:32px; height:32px; padding:4px;">
+                                <i class="fas fa-folder-open"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="fas fa-user-slash fs-1 d-block mb-3 opacity-25"></i>
+                            Aucun élève trouvé dans les critères sélectionnés.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block page_title %}Historique des actions{% endblock %}
+
+{% block content %}
+<div class="w-100" x-data="{ expandedRow: null }">
+    <!-- Top Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Total Événements Consignés</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ total_logs }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-shield-halved fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Activité Enregistrée Aujourd'hui</div>
+                        <div class="fs-4 fw-bold text-success mt-1">{{ logs_aujourd_hui }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-success bg-opacity-10 text-success">
+                        <i class="fas fa-list-check fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-3">
+        <form method="GET" action="{{ url_for('admin.journal_audit') }}" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <select name="action" class="form-select bg-light border-0">
+                    <option value="" {% if not action_filter %}selected{% endif %}>Toutes les opérations</option>
+                    {% for a in actions_types %}
+                    <option value="{{ a }}" {% if action_filter == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="user_type" class="form-select bg-light border-0">
+                    <option value="" {% if not user_type_filter %}selected{% endif %}>Tous types d'utilisateurs</option>
+                    <option value="ADMIN" {% if user_type_filter == 'ADMIN' %}selected{% endif %}>Administrateur</option>
+                    <option value="MEDECIN" {% if user_type_filter == 'MEDECIN' %}selected{% endif %}>Médecin</option>
+                    <option value="INFIRMIER" {% if user_type_filter == 'INFIRMIER' %}selected{% endif %}>Infirmier</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="date_filter" class="form-select bg-light border-0">
+                    <option value="" {% if not date_filter %}selected{% endif %}>Toutes les dates</option>
+                    <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Aujourd'hui</option>
+                    <option value="week" {% if date_filter == 'week' %}selected{% endif %}>Cette semaine</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                {% if action_filter or user_type_filter or date_filter %}
+                <a href="{{ url_for('admin.journal_audit') }}" class="btn btn-light" title="Réinitialiser"><i class="fas fa-xmark"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Audit Table (GTM Style) -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center p-3">
+            <span class="fw-bold text-dark"><i class="fas fa-fingerprint me-2 text-primary"></i>Piste de Traçabilité Clinique &amp; Administrative</span>
+            <span class="badge bg-light text-muted border">{{ logs|length }} log(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table gtm-table align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4">Horodatage</th>
+                        <th>Opération</th>
+                        <th>Profil Utilisateur</th>
+                        <th>ID Cible</th>
+                        <th>Détails Traçabilité</th>
+                        <th class="text-end pe-4">Adresse IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in logs %}
+                    <tr class="gtm-interactive-row" 
+                        @click="expandedRow = (expandedRow === {{ loop.index }} ? null : {{ loop.index }})">
+                        <td class="ps-4 py-3">
+                            <div class="fw-bold text-dark">
+                                {{ l.created_at.strftime('%d/%m/%Y') if l.created_at else '—' }}
+                            </div>
+                            <small class="text-muted">
+                                {{ l.created_at.strftime('%H:%M:%S') if l.created_at else '' }}
+                            </small>
+                        </td>
+                        <td>
+                            {% if 'CONNEXION' in l.action or 'LOGIN' in l.action %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                                <i class="fas fa-right-to-bracket me-1"></i>{{ l.action }}
+                            </span>
+                            {% elif 'SUPPRESSION' in l.action or 'DELETE' in l.action %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">
+                                <i class="fas fa-trash me-1"></i>{{ l.action }}
+                            </span>
+                            {% elif 'MODIF' in l.action or 'UPDATE' in l.action %}
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1">
+                                <i class="fas fa-pen me-1"></i>{{ l.action }}
+                            </span>
+                            {% elif 'INVIT' in l.action %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                <i class="fas fa-envelope me-1"></i>{{ l.action }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1">
+                                {{ l.action }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ l.user_type or 'SYSTÈME' }}</span>
+                        </td>
+                        <td>
+                            <span class="text-muted small">#{{ l.user_id or '—' }}</span>
+                        </td>
+                        <td class="text-dark small" style="max-width: 380px;">
+                            <div class="text-truncate">{{ l.details or 'Aucune précision complémentaire' }}</div>
+                        </td>
+                        <td class="text-end pe-4 text-muted small font-monospace">
+                            {{ l.ip_address or '127.0.0.1' }}
+                        </td>
+                    </tr>
+                    <!-- Ligne étendue avec détails complets -->
+                    <tr x-show="expandedRow === {{ loop.index }}" x-cloak class="bg-light">
+                        <td colspan="6" class="p-3 ps-4">
+                            <div class="card border-0 bg-white p-3 rounded-3 shadow-sm">
+                                <div class="fw-bold text-dark mb-1"><i class="fas fa-info-circle text-primary me-2"></i>Contenu intégral de l'événement</div>
+                                <div class="font-monospace small text-dark p-2 bg-light rounded">{{ l.details or 'Aucun détail' }}</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fas fa-shield-halved fs-1 d-block mb-3 opacity-25"></i>
+                            Aucun événement dans le journal d'audit pour les filtres sélectionnés.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

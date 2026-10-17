@@ -45,6 +45,10 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(profile_bp)
 
+    # Context processors (bell alerts, etc.)
+    from app.context_processors import register_context_processors
+    register_context_processors(app)
+
     # Landing page
     @app.route("/")
     def home():

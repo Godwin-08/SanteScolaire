@@ -1,0 +1,245 @@
+﻿{% extends "base.html" %}
+
+{% block page_title %}SpÃ©cialitÃ©s{% endblock %}
+
+{% block topbar_actions %}
+<div class="d-flex align-items-center gap-2">
+    <button class="btn btn-primary btn-sm px-3 shadow-sm rounded-pill fw-medium" data-bs-toggle="modal" data-bs-target="#modalAjouterSpecialite">
+        <i class="fas fa-plus me-1"></i> Nouvelle SpÃ©cialitÃ©
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="w-100">
+    <!-- Top Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Total SpÃ©cialitÃ©s</div>
+                        <div class="fs-4 fw-bold text-dark mt-1">{{ specialites|length }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-stethoscope fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">SpÃ©cialitÃ©s Pourvues</div>
+                        <div class="fs-4 fw-bold text-success mt-1">{{ total_avec_medecins }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-success bg-opacity-10 text-success">
+                        <i class="fas fa-user-check fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase">Postes Vacants</div>
+                        <div class="fs-4 fw-bold text-warning mt-1">{{ total_sans_medecins }}</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-warning bg-opacity-10 text-warning">
+                        <i class="fas fa-user-xmark fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar avec Bascule de vue (Fiches / Tableau) -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-3">
+        <form method="GET" action="{{ url_for('admin.liste_specialites') }}" class="row g-2 align-items-center">
+            <div class="col-md-7">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control rounded-3" placeholder="Rechercher par nom ou code spÃ©cialitÃ©..." value="{{ search_q }}">
+                </div>
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-primary w-100 rounded-pill"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                {% if search_q %}
+                <a href="{{ url_for('admin.liste_specialites') }}" class="btn btn-light rounded-pill" title="RÃ©initialiser"><i class="fas fa-times"></i></a>
+                {% endif %}
+            </div>
+            <div class="col-md-3 d-flex justify-content-md-end justify-content-start">
+                <div class="btn-group p-1 bg-light rounded-pill border-0" role="group" aria-label="Mode d'affichage">
+                    <button type="button" class="btn btn-sm rounded-pill px-3 fw-semibold btn-primary text-white" id="btnVueGrille" onclick="changerVue('grille')">
+                        <i class="fas fa-th-large me-1"></i> Fiches
+                    </button>
+                    <button type="button" class="btn btn-sm rounded-pill px-3 fw-semibold text-secondary" id="btnVueTableau" onclick="changerVue('tableau')">
+                        <i class="fas fa-list me-1"></i> Tableau
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 1. VUE CARTES / FICHES (Par dÃ©faut) -->
+    <div id="vueGrille" class="row g-3 mb-4">
+        {% for s in specialites %}
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3 gtm-interactive-row" 
+                 onclick="window.location.href='{{ url_for('admin.specialite_detail', id_spe=s.id_specialite) }}'"
+                 style="cursor: pointer;">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge bg-light text-muted border mb-1">{{ s.code_specialite or 'SANS-CODE' }}</span>
+                        <h6 class="fw-bold text-dark mb-0">{{ s.nom_specialite }}</h6>
+                    </div>
+                    <span class="badge {% if s.nb_medecins > 0 %}bg-success bg-opacity-10 text-success border border-success border-opacity-25{% else %}bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25{% endif %} rounded-pill px-2 py-1">
+                        <i class="fas fa-user-doctor me-1"></i>{{ s.nb_medecins }} mÃ©decin(s)
+                    </span>
+                </div>
+                <p class="text-muted small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    {{ s.description or 'Aucune description clinique disponible pour cette discipline.' }}
+                </p>
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                    <span class="small text-primary fw-medium">Consulter la fiche &rarr;</span>
+                    <i class="fas fa-chevron-right text-muted small"></i>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+                <i class="fas fa-stethoscope fs-1 d-block mb-3 text-muted opacity-25"></i>
+                <h6 class="fw-bold text-dark">Aucune spÃ©cialitÃ© trouvÃ©e</h6>
+                <p class="text-muted small mb-0">Aucun rÃ©sultat ne correspond Ã  votre recherche {% if search_q %}Â« {{ search_q }} Â»{% endif %}.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 2. VUE TABLEAU (Compacte) -->
+    <div id="vueTableau" class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4" style="display: none;">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center p-3">
+            <span class="fw-bold text-dark"><i class="fas fa-list me-2 text-primary"></i>Liste des spÃ©cialitÃ©s</span>
+            <span class="badge bg-light text-muted border">{{ specialites|length }} spÃ©cialitÃ©(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table gtm-table align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4">SpÃ©cialitÃ©</th>
+                        <th>Code</th>
+                        <th>Effectif Soignant</th>
+                        <th>Description Clinique</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in specialites %}
+                    <tr class="gtm-interactive-row" onclick="window.location.href='{{ url_for('admin.specialite_detail', id_spe=s.id_specialite) }}'">
+                        <td class="ps-4 py-3 fw-bold text-dark">
+                            <i class="fas fa-stethoscope me-2 text-primary opacity-50"></i>{{ s.nom_specialite }}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-muted border">{{ s.code_specialite or 'â€”' }}</span>
+                        </td>
+                        <td>
+                            <span class="badge {% if s.nb_medecins > 0 %}bg-success bg-opacity-10 text-success{% else %}bg-warning bg-opacity-10 text-warning{% endif %} px-2 py-1">
+                                {{ s.nb_medecins }} praticien(s)
+                            </span>
+                        </td>
+                        <td class="text-muted small text-truncate" style="max-width: 320px;">
+                            {{ s.description or 'â€”' }}
+                        </td>
+                        <td class="text-end pe-4" onclick="event.stopPropagation()">
+                            <a href="{{ url_for('admin.specialite_detail', id_spe=s.id_specialite) }}" class="btn btn-sm btn-light text-primary rounded-circle" style="width:32px; height:32px; padding:4px;">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="fas fa-stethoscope fs-1 d-block mb-3 opacity-25"></i>
+                            Aucune spÃ©cialitÃ© ne correspond Ã  la recherche.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter SpÃ©cialitÃ© -->
+<div class="modal fade" id="modalAjouterSpecialite" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark"><i class="fas fa-plus-circle text-primary me-2"></i>Nouvelle SpÃ©cialitÃ© Clinique</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin.ajouter_specialite') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">IntitulÃ© de la SpÃ©cialitÃ©</label>
+                        <input type="text" name="nom_specialite" class="form-control rounded-3" placeholder="Ex: PÃ©diatrie, Ophtalmologie..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Code RÃ©fÃ©rence</label>
+                        <input type="text" name="code_specialite" class="form-control rounded-3" placeholder="Ex: PED, OPH..." style="text-transform: uppercase;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Description / Champ d'intervention</label>
+                        <textarea name="description" rows="3" class="form-control rounded-3" placeholder="PrÃ©ciser les actes ou compÃ©tences couverts..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">CrÃ©er la spÃ©cialitÃ©</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+function changerVue(mode) {
+    const grille = document.getElementById('vueGrille');
+    const tableau = document.getElementById('vueTableau');
+    const btnG = document.getElementById('btnVueGrille');
+    const btnT = document.getElementById('btnVueTableau');
+
+    if (!grille || !tableau || !btnG || !btnT) return;
+
+    if (mode === 'tableau') {
+        grille.style.display = 'none';
+        tableau.style.display = 'block';
+        btnT.classList.add('btn-primary', 'text-white');
+        btnT.classList.remove('text-secondary');
+        btnG.classList.remove('btn-primary', 'text-white');
+        btnG.classList.add('text-secondary');
+        try { localStorage.setItem('santescolaire_specialite_view', 'tableau'); } catch(e) {}
+    } else {
+        grille.style.display = 'flex';
+        tableau.style.display = 'none';
+        btnG.classList.add('btn-primary', 'text-white');
+        btnG.classList.remove('text-secondary');
+        btnT.classList.remove('btn-primary', 'text-white');
+        btnT.classList.add('text-secondary');
+        try { localStorage.setItem('santescolaire_specialite_view', 'grille'); } catch(e) {}
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    let savedView = 'grille';
+    try { savedView = localStorage.getItem('santescolaire_specialite_view') || 'grille'; } catch(e) {}
+    changerVue(savedView);
+});
+</script>
+{% endblock %}
+

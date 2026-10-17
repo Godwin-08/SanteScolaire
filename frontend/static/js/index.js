@@ -49,22 +49,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     resultCount.classList.add('d-none');
                 }
             } else {
-                // Si recherche vide, on remet l'état initial
-                // Vérification : Si des filtres URL sont actifs, on ne cache pas la grille
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.has('classe') || urlParams.has('avec_rdv')) {
-                    cards.forEach(card => card.classList.remove('d-none')); // Réaffiche tout
-                    grid.classList.remove('d-none');
-                    emptyState.classList.add('d-none');
-                    resultCount.classList.remove('d-none');
-                    countDisplay.innerText = cards.length;
-                } else {
-                    grid.classList.add('d-none');
-                    emptyState.classList.remove('d-none');
-                    resultCount.classList.add('d-none');
-                }
+                // Si recherche vide, réafficher tous les dossiers
+                cards.forEach(card => card.classList.remove('d-none'));
+                grid.classList.remove('d-none');
+                if (emptyState) emptyState.classList.add('d-none');
+                if (resultCount) resultCount.classList.remove('d-none');
+                if (countDisplay) countDisplay.innerText = cards.length;
             }
-        }, 300)); // Délai de 300ms
+        }, 200));
     }
 });
 
